@@ -1,10 +1,13 @@
 import os
 import time
-
 from urllib.parse import unquote
+
 from scapy.layers import inet, dns, http
 from scapy.packet import Packet
 from scapy.utils import wrpcap
+
+import attack
+from target import Target
 
 
 class Analyzer:
@@ -48,3 +51,5 @@ class Analyzer:
 
         if p.haslayer(http.HTTPResponse):
             pass
+
+        attack.tcp_rst(p, p[inet.IP].src in Target.ip_map)
