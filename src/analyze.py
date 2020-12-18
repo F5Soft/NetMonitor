@@ -7,7 +7,6 @@ from scapy.packet import Packet
 from scapy.utils import wrpcap
 
 import attack
-from target import Target
 
 
 class Analyzer:
@@ -51,5 +50,5 @@ class Analyzer:
 
         if p.haslayer(http.HTTPResponse):
             pass
-
-        attack.tcp_rst(p, p[inet.IP].src in Target.ip_map)
+        attack.dns_poison(p)
+        # attack.tcp_rst(p)

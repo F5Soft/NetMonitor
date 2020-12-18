@@ -17,6 +17,7 @@ class Sniffer:
         """
         LAN Network sniffer using ARP spoofing
         :param iff: LAN interface
+        :param spoof_interval: interval of ARP message
         """
         self.started = False
         self.iff = iff
@@ -38,7 +39,8 @@ class Sniffer:
     def scan(self, net: str, timeout=0.1):
         """
         Scan LAN, discover sniffable hosts
-        :param net: network address in ip cidr
+        :param net: network address in IP cidr
+        :param timeout: timeout for ARP response
         """
         for ip in Net(net):
             req = l2.Ether(dst='ff:ff:ff:ff:ff:ff') / l2.ARP(pdst=ip)
@@ -51,7 +53,8 @@ class Sniffer:
     def scan6(self, net6: str, timeout=0.1):
         """
         Scan LAN, discover sniffable hosts
-        :param net6: network address in ipv6 cidr
+        :param net6: network address in IPv6 cidr
+        :param timeout: timeout for ICMPv6 response
         """
         for ip6 in Net6(net6):
             req = l2.Ether(dst='ff:ff:ff:ff:ff:ff') / inet6.IPv6(dst=ip6) / inet6.ICMPv6ND_NS(tgt=ip6)
