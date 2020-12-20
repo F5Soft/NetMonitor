@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block body %}
+    <div class="container mt-5">
+        <h5>当前网络环境</h5>
+        <b>本地IPv4</b>：{{ iff_ip }}<br>
+        <b>本地IPv6</b>：{{ iff_ip6 }}<br>
+        <b>本地MAC</b>：{{ iff_mac }}<br>
+        <b>路由IPv4</b>：{{ router_ip }}<br>
+        <b>路由IPv6</b>：{{ router_ip6 }}<br>
+        <b>路由MAC</b>：{{ router_mac }}<br>
+    </div>
+    <div class="container mt-5">
+        <h5>LAN扫描</h5>
+        <form id="form-scan">
+            <div class="form-group">
+                <div class="row mb-3">
+                    <div class="col">
+                        <label for="net">IPv4网段</label>
+                        <input id="net" class="form-control form-control-sm" type="text" name="net">
+                    </div>
+                    <div class="col">
+                        <label for="net6">IPv6网段</label>
+                        <input id="net6" class="form-control form-control-sm" type="text" name="net6">
+                    </div>
+                    <div class="col">
+                        <button id="btn-scan" class="btn btn-primary mt-4" type="button">开始LAN扫描</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="result-scan" class="container mt-1">
+    </div>
+    <div class="container mt-5">
+        <h5>监控主机设置</h5>
+        <form id="form-sniff">
+            <div class="form-group">
+                <div class="row mb-3">
+                    <div class="col">
+                        <label for="ip">IPv4地址</label>
+                        <input id="ip" class="form-control form-control-sm" type="text" name="ip">
+                    </div>
+                    <div class="col">
+                        <label for="ip6">IPv6地址</label>
+                        <input id="ip6" class="form-control form-control-sm" type="text" name="ip6">
+                    </div>
+                    <div class="col">
+                        <button id="btn-sniff" class="btn btn-primary mt-4" type="button">开始流量监控</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+{% block script %}
+    <script>
+        $("#btn-scan").click(() => {
+            let result = $("#result-scan");
+            result.text("正在扫描中");
+            $.post("/scan", $("#form-scan").serialize(), (data) => {
+                result.text("");
+                if (Object.keys(data).length === 0)
+                    result.text("没有扫描结果");
+                for (let key in data) {
+                    result.append("<b>MAC</b>: " + data[key] + "&nbsp;&nbsp;<b>IP</b>: " + key);
+                }
+            }, "json");
+        });
+
+        $("#btn-sniff").click(() => {
+            $.post("/sniff", $("#form-sniff").serialize(), (data) => {
+                console.log('posted');
+                if (data) {
+                    window.location = "{{ url_for('ranking') }}";
+                }
+            }, "json");
+        });
+    </script>
+{% endblock %}

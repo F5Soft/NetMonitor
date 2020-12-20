@@ -1,15 +1,17 @@
-import analyze
-import sniff
+from monitor.analyze import Analyzer
+from monitor.sniff import Sniffer
+from monitor.target import Target
 
-sn = sniff.Sniffer()  # iff=ifaces.dev_from_name("vEthernet (WSL)"))
-an = analyze.Analyzer()
+sn = Sniffer()  # iff=ifaces.dev_from_name("vEthernet (WSL)"))
+an = Analyzer()
 
-net = input("Please input IPv4 network: ")
-if len(net) != 0:
-    print(sn.scan(net))
-net6 = input("Please input IPv6 network: ")
-if len(net6) != 0:
-    print(sn.scan(net6))
+# net = input("Please input IPv4 network: ")
+# if len(net) != 0:
+#     print(sn.scan(net))
+# net6 = input("Please input IPv6 network: ")
+# if len(net6) != 0:
+#     print(sn.scan(net6))
 
-sn.add('192.168.43.211')
+Target.set('192.168.1.102')
+print(Target.mac)
 sn.start(an.feed)
