@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="container">
+        <h5 class="mb-4">个人信息解析</h5>
+        <div class="row">
+            <div class="col-md-3">
+                <img id="avatar" src="/static/avatar1.png" style="padding: 4px;border: 2px solid gray; border-radius: 50%;">
+            </div>
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-3" style="border:0;padding:0">
+                        <ul class="list-group">
+                            <li class="list-group-item" style="background-color: var(--color-primary-light);"><b id="where0">用户QQ号</b></li>
+                            <li class="list-group-item" style="background-color: var(--color-primary-light);"><b id="where1">FTP用户名</b></li>
+                            <li class="list-group-item" style="background-color: var(--color-primary-light);"><b id="where2">FTP密码</b></li>
+                            <li class="list-group-item" style="background-color: var(--color-primary-light);"><b id="where3">HTTP平台用户名</b></li>
+                            <li class="list-group-item" style="background-color: var(--color-primary-light);"><b id="where4">HTTP平台密码</b></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-9" style="border:0;padding:0">
+                        <ul class="list-group">
+                            <li class="list-group-item"><text id="name0"></text><text id="passwd0"></text></li>
+                            <li class="list-group-item"><text id="name1"></text><text id="passwd1"></text></li>
+                            <li class="list-group-item"><text id="name2"></text><text id="passwd2"></text></li>
+                            <li class="list-group-item"><text id="name3"></text><text id="passwd3"></text></li>
+                            <li class="list-group-item"><text id="name4"></text><text id="passwd4"></text></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+    set_count();
+    setInterval(set_count, 10000);
+    function set_count() {
+        $.post("{{ url_for('usrinfo') }}", "", (data) => {
+            $("#where0").text(data[0][0]);
+            $("#where1").text(data[1][0]);
+            $("#where2").text(data[2][0]);
+            $("#where3").text(data[3][0]);
+            $("#where4").text(data[4][0]);
+
+            $("#name0").text(data[0][1]);
+            $("#name1").text(data[1][1]);
+            $("#name2").text(data[2][1]);
+            $("#name3").text(data[3][1]);
+            $("#name4").text(data[4][1]);
+
+            $("#passwd0").text(data[0][2]);
+            $("#passwd1").text(data[1][2]);
+            $("#passwd2").text(data[2][2]);
+            $("#passwd3").text(data[3][2]);
+            $("#passwd4").text(data[4][2]);
+            
+        }, "json");
+    }
+</script>
+{% endblock %}
