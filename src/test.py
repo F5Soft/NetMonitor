@@ -1,8 +1,10 @@
+from scapy.arch import ifaces
+
 from monitor.analyze import Analyzer
 from monitor.sniff import Sniffer
 from monitor.target import Target
 
-sn = Sniffer()  # iff=ifaces.dev_from_name("vEthernet (WSL)"))
+sn = Sniffer(iff=ifaces.dev_from_name("vEthernet (WSL)"))
 an = Analyzer()
 
 # net = input("Please input IPv4 network: ")
@@ -12,6 +14,6 @@ an = Analyzer()
 # if len(net6) != 0:
 #     print(sn.scan(net6))
 
-Target.set('192.168.1.102')
+Target.set('172.30.98.6')
 print(Target.mac)
-sn.start(an.feed)
+sn.start(an.feed, spoof=False)

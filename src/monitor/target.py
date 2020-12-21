@@ -13,7 +13,7 @@ class Target:
     banned = False
     web_history = list()
     web_stats = defaultdict(int)
-    password = list()
+    password = dict()
 
     @staticmethod
     def set(ip: str, ip6: str = None) -> bool:
@@ -35,7 +35,7 @@ class Target:
 
     @staticmethod
     def add_password(where: str, username: str, password: str):
-        Target.password.append((where, username, password))
+        Target.password[where] = (username, password)
 
     @staticmethod
     def ban(timeout: int):

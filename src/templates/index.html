@@ -71,7 +71,7 @@
             $.post("/sniff", $("#form-sniff").serialize(), (data) => {
                 console.log('posted');
                 if (data) {
-                    window.location = "{{ url_for('ranking') }}";
+                    window.location = "{{ url_for('stats') }}";
                 }
             }, "json");
         });

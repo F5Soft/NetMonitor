@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="container">
+        <h5 class="mb-4">最近十条数据报文信息</h5>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row chart-row">
+                    <div class="col-md-12">
+                        <div id="main3" class="table-border">
+                            <table id="account" class="table table-bordered table-hover">
+                                <tr class="active">
+                                    <th>序号</th>
+                                    <th>源MAC</th>
+                                    <th>目的MAC</th>
+                                    <th>源IP</th>
+                                    <th>目的IP</th>
+                                    <th>源port</th>
+                                    <th>目的port</th>
+                                    <th>IP版本</th>
+                                    <th>最高协议</th>
+
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+    set_count();
+    setInterval(set_count, 10000);
+    function set_count() {
+        $.post("#", "", (data) => {
+            for (var i = 0; i < 10; i++) {
+                var $tr = $("#account tr").eq(0);
+                var trHtml = "<tr class='info'><td>" + data[i]['no'] + "</td><td>" + data[i]['eth_src']+ "</td><td>"+data[i]['eth_dst']+"</td><td>"
+                    +data[i]['ip_src'] +"</td><td>" + data[i]['ip_dst'] + "</td><td>" + data[i]['port_src'] + "</td><td>" + data[i]['port_dst'] + "</td><td>" 
+                        + data[i]['protol']['IP'] + "</td><td>" + data[i]['protol']['top'] + "</td></tr>";
+                $tr.after(trHtml);
+                var $tr2 = $("#account tr").eq(11);
+                $tr2.empty();
+            }
+        }, "json");
+    }
+
+</script>
+{% endblock %}

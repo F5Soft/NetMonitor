@@ -27,13 +27,33 @@
     </style>
 </head>
 <body>
-<nav class="navbar navbar-light" style="background-color: var(--color-primary-light);">
-    <a class="navbar-brand" href="https://xmphyc.xmu.edu.cn/">
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: var(--color-primary-light);">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
         <img src="https://xmphyc.xmu.edu.cn/favicon.ico" width="30" height="30" class="d-inline-block align-top" alt="">
-        网络流量监控与反监控&nbsp;&nbsp;|
-        <small class="text-muted">&nbsp;&nbsp;{{ title }}</small>
+        网络流量监控
     </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
+            aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('stats') }}">流量统计</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('detail') }}">报文详细信息</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('ban') }}">断网规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">主机用户信息</a>
+            </li>
+        </ul>
+    </div>
 </nav>
+
 {% block body %}{% endblock %}
 <hr class="mt-5 mb-3">
 <footer class="container">

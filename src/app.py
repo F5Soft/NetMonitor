@@ -1,6 +1,7 @@
 from flask import *
 
 from monitor.analyze import Analyzer
+from monitor.analyze import info
 from monitor.sniff import Sniffer
 from monitor.target import Target
 
@@ -44,13 +45,30 @@ def sniff():
     return jsonify(True)
 
 
-@app.route('/referer/xmphyc/ranking', methods=['GET', 'POST'])
-def ranking():
+@app.route('/stats', methods=['GET', 'POST'])
+def stats():
     if request.method == 'GET':
-        return render_template('ranking.html', title='流量监控', cnt=an.cnt)
+        return render_template('stats.html', title='流量监控', cnt=an.cnt)
     elif request.method == 'POST':
         return jsonify(an.cnt)
-    return render_template('ranking.html', cnt=an.cnt)
+    return render_template('stats.html', cnt=an.cnt)
+
+
+@app.route('/detail', methods=['GET', 'POST'])
+def detail():
+    if request.method == 'GET':
+        return render_template('detail.html', title='数据报文解析')
+    elif request.method == 'POST':
+        return jsonify(info)
+
+
+@app.route('/ban', methods=['GET', 'POST'])
+def ban():
+    if request.method == 'GET':
+        return render_template('ban.html', title='流量管理')
+    elif request.method == 'POST':
+        domain_ban = request.form.get('domain_ban', None)
+        word_ban = request.form.get('word_ban', None)
 
 
 if __name__ == '__main__':
