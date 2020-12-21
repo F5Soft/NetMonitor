@@ -6,9 +6,9 @@ from scapy.layers import l2
 
 
 class Target:
-    ip = ''
-    ip6 = ''
-    mac = ''
+    host_ip = []
+    host_ip6 = []
+    host_mac = ''
 
     banned = False
     web_history = list()

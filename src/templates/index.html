@@ -1,51 +1,47 @@
 {% extends 'base.html' %}
 {% block body %}
     <div class="container mt-5">
-        <h5>当前网络环境</h5>
-        <b>本地IPv4</b>：{{ iff_ip }}<br>
-        <b>本地IPv6</b>：{{ iff_ip6 }}<br>
-        <b>本地MAC</b>：{{ iff_mac }}<br>
-        <b>路由IPv4</b>：{{ router_ip }}<br>
-        <b>路由IPv6</b>：{{ router_ip6 }}<br>
-        <b>路由MAC</b>：{{ router_mac }}<br>
-    </div>
-    <div class="container mt-5">
-        <h5>LAN扫描</h5>
-        <form id="form-scan">
-            <div class="form-group">
-                <div class="row mb-3">
-                    <div class="col">
-                        <label for="net">IPv4网段</label>
-                        <input id="net" class="form-control form-control-sm" type="text" name="net">
-                    </div>
-                    <div class="col">
-                        <label for="net6">IPv6网段</label>
-                        <input id="net6" class="form-control form-control-sm" type="text" name="net6">
-                    </div>
-                    <div class="col">
-                        <button id="btn-scan" class="btn btn-primary mt-4" type="button">开始LAN扫描</button>
-                    </div>
-                </div>
+        <div class="row">
+            <div class="col">
+                <h5 class="mb-4">当前网络环境</h5>
+                <b>本机IPv4地址</b>
+                <p>{% for i in ip %}{{ i }}<br>{% endfor %}</p>
+                <b>本机IPv6地址</b>
+                <p>{% for i in ip6 %}{{ i }}<br>{% endfor %}</p>
+                <b>本机MAC地址</b>
+                <p>{{ mac }}<br></p>
+                <b>路由器的一个可能的IPv4地址</b>
+                <p>{% for i in router_ip %}{{ i }}<br>{% endfor %}</p>
+                <b>路由器的一个可能的IPv6地址</b>
+                <p>{% for i in router_ip6 %}{{ i }}<br>{% endfor %}</p>
+                <b>路由器MAC地址</b>
+                <p>{{ router_mac }}<br></p>
             </div>
-        </form>
+            <div class="col">
+                <h5 class="mb-4">LAN扫描</h5>
+                <p id="result-scan"></p>
+                <button id="btn-scan" class="btn btn-primary mt-1" type="button">开始LAN扫描</button>
+            </div>
+        </div>
     </div>
-    <div id="result-scan" class="container mt-1">
-    </div>
+
     <div class="container mt-5">
-        <h5>监控主机设置</h5>
+        <h5 class="mb-4">监控设置</h5>
         <form id="form-sniff">
             <div class="form-group">
                 <div class="row mb-3">
                     <div class="col">
-                        <label for="ip">IPv4地址</label>
-                        <input id="ip" class="form-control form-control-sm" type="text" name="ip">
+                        <label for="mac">被监控主机MAC地址</label>
+                        <input id="mac" class="form-control form-control-sm" type="text" name="mac">
                     </div>
                     <div class="col">
-                        <label for="ip6">IPv6地址</label>
-                        <input id="ip6" class="form-control form-control-sm" type="text" name="ip6">
+                        <label for="interval">ARP / ICMPv6 欺骗周期（秒，0不启用）</label>
+                        <input id="interval" class="form-control form-control-sm" type="number" min=0, name="interval"
+                               value="5">
                     </div>
                     <div class="col">
                         <button id="btn-sniff" class="btn btn-primary mt-4" type="button">开始流量监控</button>
+                        <button id="btn-stop" class="btn btn-danger mt-4" type="button">停止流量监控</button>
                     </div>
                 </div>
             </div>
@@ -61,9 +57,16 @@
                 result.text("");
                 if (Object.keys(data).length === 0)
                     result.text("没有扫描结果");
-                for (let key in data) {
-                    result.append("<b>MAC</b>: " + data[key] + "&nbsp;&nbsp;<b>IP</b>: " + key);
+                for (let mac in data) {
+                    result.append("<b>" + mac + "</b>");
+                    let html = "<p>";
+                    for (let ip of data[mac]) {
+                        html += ip + "<br>";
+                    }
+                    html += "</p>"
+                    result.append(html);
                 }
+                $("#btn-scan").text("重新开始LAN扫描");
             }, "json");
         });
 

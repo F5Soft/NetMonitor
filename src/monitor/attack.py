@@ -2,6 +2,12 @@ from scapy.layers import inet, inet6, dns
 from scapy.packet import Packet
 from scapy.sendrecv import send
 
+ban = False
+
+
+def arp_spoof(p: Packet):
+    pass
+
 
 def tcp_rst(p: Packet):
     """

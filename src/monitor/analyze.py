@@ -1,13 +1,13 @@
 import json
 import re
+import time
+from collections import defaultdict
 from urllib import parse
 
 from scapy.layers import inet, dns, http, inet6
 from scapy.packet import Packet, Raw
 
-from monitor.target import Target
-
-info = []
+from monitor import attack
 
 
 def in_list(content: str, ban: set):
@@ -41,6 +41,11 @@ class Analyzer:
                                 'udp': {'all': 0, 'oicq': 0, 'dns': 0},
                                 'snmp': 0,
                                 'icmp': 0}}
+        self.info = []
+
+        self.web_history = list()
+        self.web_stats = defaultdict(int)
+        self.password = dict()
 
         self._ftp_username = None
         self._telnet_buf = None
@@ -150,11 +155,11 @@ class Analyzer:
         except:
             pass
 
-        if len(info) < 10:
-            info.append(pkg_info)
+        if len(self.info) < 10:
+            self.info.append(pkg_info)
         else:
-            info.pop(0)
-            info.append(pkg_info)
+            self.info.pop(0)
+            self.info.append(pkg_info)
 
         # print(self.cnt)
 
@@ -170,35 +175,38 @@ class Analyzer:
             url = p[http.HTTPRequest].Host + p[http.HTTPRequest].Path
             url = parse.unquote(url.decode('ascii', 'replace'))
             data = bytes(p[http.HTTPRequest].payload)
-            form_data = parse.parse_qs(data)
+            try:
+                form_data = parse.parse_qs(data)
+            except Exception:
+                form_data = {}
             try:
                 json_data = json.loads(data)
-            except json.JSONDecodeError:
+            except Exception:
                 json_data = {}
-            Target.add_stats(domain)
-            Target.add_history(url)
+            self.add_stats(domain)
+            self.add_history(url)
             if b'username' in form_data:
                 username = form_data[b'username'][0].decode('ascii', 'replace')
                 password = form_data.get(b'password', b'')[0].decode('ascii', 'replace')
-                Target.add_password('http://' + domain, username, password)
+                self.add_password('http://' + domain, username, password)
             if 'username' in json_data:
                 username = json_data['username']
                 password = json_data.get('password', '')
-                Target.add_password('http://' + domain, username, password)
+                self.add_password('http://' + domain, username, password)
             if domain in self.domain_ban or in_list(data, self.content_ban):
-                Target.ban(60)
+                attack.ban = True
             print('[HTTP]', url)
 
         elif p.haslayer(http.HTTPResponse):
             data = p[http.HTTPResponse].payload
             if in_list(data, self.content_ban):
-                Target.ban(60)
+                attack.ban = True
 
     def dns(self, p: Packet):
         if p.haslayer(dns.DNSQR):
             domain = p[dns.DNSQR].qname.decode('ascii', 'replace').strip('.')
             if domain in self.domain_ban:
-                Target.ban(60)
+                attack.ban = True
 
             if p.haslayer(dns.DNSRR) and p[dns.DNSRR].type in [1, 28]:
                 ip = p[dns.DNSRR].rdata
@@ -207,7 +215,7 @@ class Analyzer:
                 else:
                     self.dns_map6[ip] = domain
                 if ip in self.ip_ban:
-                    Target.ban(60)
+                    attack.ban = True
             else:
                 print('[DNS]', domain)
 
@@ -215,7 +223,7 @@ class Analyzer:
         raw = bytes(p[inet.UDP].payload)
         qq = str(int.from_bytes(raw[7:11], 'big', signed=False))
         print('[OICQ]', qq)
-        Target.add_password('QQ', qq, '')
+        self.add_password('QQ', qq, '')
 
     def ftp(self, p: Raw):
         raw = bytes(p[inet.TCP].payload).decode('ascii', 'replace')
@@ -229,10 +237,19 @@ class Analyzer:
             password = password[0].replace('\\r\\n', '')
             print('[FTP] PASS', password)
             if p.haslayer(inet.IP):
-                Target.add_password('ftp://' + p[inet.IP].dst, self._ftp_username, password)
+                self.add_password('ftp://' + p[inet.IP].dst, self._ftp_username, password)
             else:
-                Target.add_password('ftp://' + p[inet6.IPv6].dst, self._ftp_username, password)
+                self.add_password('ftp://' + p[inet6.IPv6].dst, self._ftp_username, password)
             self._ftp_username = None
 
     def telnet(self, p: Raw):
         pass
+
+    def add_stats(self, domain: str):
+        self.web_stats[domain] += 1
+
+    def add_history(self, url: str):
+        self.web_history.append((time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), url))
+
+    def add_password(self, where: str, username: str, password: str):
+        self.password[where] = (username, password)
