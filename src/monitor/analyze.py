@@ -5,6 +5,7 @@ from collections import defaultdict
 from urllib import parse
 
 from scapy.layers import inet, dns, http, inet6
+from scapy.layers.tls import record
 from scapy.packet import Packet, Raw
 
 from monitor import attack
@@ -30,17 +31,23 @@ class Analyzer:
         self.dns_map6 = dict()
 
         self.count = 0
-        self.cnt = {'cnt_arp': 0,
-                    'cnt_ip4': {'all': 0,
-                                'tcp': {'all': 0, 'tls': 0, 'http': 0, 'dns': 0, 'ftp': 0},
-                                'udp': {'all': 0, 'oicq': 0, 'dns': 0},
-                                'snmp': 0,
-                                'icmp': 0},
-                    'cnt_ip6': {'all': 0,
-                                'tcp': {'all': 0, 'tls': 0, 'http': 0, 'dns': 0, 'ftp': 0},
-                                'udp': {'all': 0, 'oicq': 0, 'dns': 0},
-                                'snmp': 0,
-                                'icmp': 0}}
+        self.stats = {
+            'all': 0,
+            'ip': {
+                'all': 0,
+                'tcp': {'all': 0, 'tls': 0, 'http': 0, 'telnet': 0, 'ftp': 0, 'other': 0},
+                'udp': {'all': 0, 'oicq': 0, 'dns': 0, 'other': 0},
+                'snmp': 0,
+                'icmp': 0
+            },
+            'ip6': {
+                'all': 0,
+                'tcp': {'all': 0, 'tls': 0, 'http': 0, 'telnet': 0, 'ftp': 0, 'other': 0},
+                'udp': {'all': 0, 'oicq': 0, 'dns': 0, 'other': 0},
+                'snmp': 0,
+                'icmp': 0
+            }
+        }
         self.info = []
 
         self.web_history = list()
@@ -55,98 +62,131 @@ class Analyzer:
         Analyze single packet
         :param p: scapy packet
         """
-
         # 统计
-
         pkg_info = {'no': 0, 'eth_src': ' ', 'eth_dst': ' ', 'ip_src': ' ',
                     'ip_dst': ' ', 'port_src': ' ', 'port_dst': ' ', 'protol': {'IP': ' ', 'top': ' '}}
-
         self.count += 1
+        self.stats['all'] += 1
         pkg_info['eth_src'] = p['Ether'].src
         pkg_info['eth_dst'] = p['Ether'].dst
-        if p.haslayer('IP'):
+
+        # IPv4
+        if p.type == 2048:
             pkg_info['ip_src'] = p['IP'].src
             pkg_info['ip_dst'] = p['IP'].dst
-            self.cnt['cnt_ip4']['all'] += 1
             pkg_info['protol']['IP'] = 'IPv4'
-            if p.haslayer('TCP'):
-                self.cnt['cnt_ip4']['tcp']['all'] += 1
+            self.stats['ip']['all'] += 1
+
+            # TCP
+            if p.proto == 6:
+                self.stats['ip']['tcp']['all'] += 1
                 pkg_info['protol']['top'] = 'TCP'
-                if p.haslayer('HTTP'):
-                    self.cnt['cnt_ip4']['tcp']['http'] += 1
+
+                # HTTP
+                if 80 in [p.sport, p.dport] or p.haslayer(http.HTTP):
+                    self.stats['ip']['tcp']['http'] += 1
                     pkg_info['protol']['top'] = 'HTTP'
                     self.http(p)
-                elif p.haslayer('TLS'):
-                    self.cnt['cnt_ip4']['tcp']['tls'] += 1
+                # TLS
+                elif 443 in [p.sport, p.dport] or p.haslayer(record.TLS):
+                    self.stats['ip']['tcp']['tls'] += 1
                     pkg_info['protol']['top'] = 'TLS'
-                elif p.haslayer('DNS'):
-                    self.cnt['cnt_ip4']['tcp']['dns'] += 1
-                    pkg_info['protol']['top'] = 'DNS'
+                # Telnet
+                elif 23 in [p.sport, p.dport] or p.haslayer(dns.DNS):
+                    self.stats['ip']['tcp']['telnet'] += 1
+                    pkg_info['protol']['top'] = 'Telnet'
                     self.dns(p)
-                elif p.sport in [20, 21] or p.dport in [20, 21]:
-                    self.cnt['cnt_ip4']['tcp']['ftp'] += 1
+                # FTP
+                elif 20 in [p.sport, p.dport] or 21 in [p.sport, p.dport]:
+                    self.stats['ip']['tcp']['ftp'] += 1
                     pkg_info['protol']['top'] = 'FTP'
                     self.ftp(p)
-            elif p.haslayer('UDP'):
-                self.cnt['cnt_ip4']['udp']['all'] += 1
+                # other
+                else:
+                    self.stats['ip']['tcp']['other'] += 1
+
+            # UDP
+            elif p.proto == 17:
+                self.stats['ip']['udp']['all'] += 1
                 pkg_info['protol']['top'] = 'UDP'
-                if p.haslayer('DNS'):
-                    self.cnt['cnt_ip4']['udp']['dns'] += 1
+
+                # DNS
+                if 53 in [p.sport, p.dport] or p.haslayer(dns.DNS):
+                    self.stats['ip']['udp']['dns'] += 1
                     pkg_info['protol']['top'] = 'DNS'
                     self.dns(p)
-                elif p.sport == 8000 or p.dport == 8000:
-                    self.cnt['cnt_ip4']['udp']['oicq'] += 1
+                # OICQ
+                elif 8000 in [p.sport, p.dport]:
+                    self.stats['ip']['udp']['oicq'] += 1
                     pkg_info['protol']['top'] = 'OICQ'
                     self.oicq(p)
-            elif p.haslayer('SNMP'):
-                self.cnt['cnt_ip4']['snmp'] += 1
-                pkg_info['protol']['top'] = 'SNMP'
-            elif p.haslayer('ICMP'):
-                self.cnt['cnt_ip4']['icmp'] += 1
+                # other
+                else:
+                    self.stats['ip']['udp']['other'] += 1
+
+            # ICMP
+            elif p.proto == 1:
+                self.stats['ip']['icmp'] += 1
                 pkg_info['protol']['top'] = 'ICMP'
-        elif p.haslayer('IPv6'):
+
+        # IPv6
+        elif p.type == 34525:
             pkg_info['ip_src'] = p['IPv6'].src
             pkg_info['ip_dst'] = p['IPv6'].dst
-            self.cnt['cnt_ip6']['all'] += 1
             pkg_info['protol']['IP'] = 'IPv6'
-            if p.haslayer('TCP'):
-                self.cnt['cnt_ip6']['tcp']['all'] += 1
+            self.stats['ip6']['all'] += 1
+
+            # TCP
+            if p.nh == 6:
+                self.stats['ip6']['tcp']['all'] += 1
                 pkg_info['protol']['top'] = 'TCP'
-                if p.haslayer('HTTP'):
-                    self.cnt['cnt_ip6']['tcp']['http'] += 1
+
+                # HTTP
+                if 80 in [p.sport, p.dport] or p.haslayer(http.HTTP):
+                    self.stats['ip6']['tcp']['http'] += 1
                     pkg_info['protol']['top'] = 'HTTP'
                     self.http(p)
-                elif p.haslayer('TLS'):
-                    self.cnt['cnt_ip6']['tcp']['tls'] += 1
+                # TLS
+                elif 443 in [p.sport, p.dport] or p.haslayer(record.TLS):
+                    self.stats['ip6']['tcp']['tls'] += 1
                     pkg_info['protol']['top'] = 'TLS'
-                elif p.haslayer('DNS'):
-                    self.cnt['cnt_ip6']['tcp']['dns'] += 1
-                    pkg_info['protol']['top'] = 'DNS'
+                # Telnet
+                elif 53 in [p.sport, p.dport] or p.haslayer(dns.DNS):
+                    self.stats['ip6']['tcp']['telnet'] += 1
+                    pkg_info['protol']['top'] = 'Telnet'
                     self.dns(p)
-                elif p.sport == 20 or p.dport == 21:
-                    self.cnt['cnt_ip6']['tcp']['ftp'] += 1
+                # FTP
+                elif 20 in [p.sport, p.dport] or 21 in [p.sport, p.dport]:
+                    self.stats['ip6']['tcp']['ftp'] += 1
                     pkg_info['protol']['top'] = 'FTP'
                     self.ftp(p)
-            elif p.haslayer('UDP'):
-                self.cnt['cnt_ip6']['udp']['all'] += 1
+                # other
+                else:
+                    self.stats['ip6']['tcp']['other'] += 1
+
+            # UDP
+            elif p.nh == 17:
+                self.stats['ip6']['udp']['all'] += 1
                 pkg_info['protol']['top'] = 'UDP'
-                if p.haslayer('DNS'):
-                    self.cnt['cnt_ip6']['udp']['dns'] += 1
+
+                # DNS
+                if p.haslayer(dns.DNS):
+                    self.stats['ip6']['udp']['dns'] += 1
                     pkg_info['protol']['top'] = 'DNS'
                     self.dns(p)
-                elif p.sport == 8000 or p.dport == 8000:
-                    self.cnt['cnt_ip6']['udp']['oicq'] += 1
+                # OICQ
+                elif 8000 in [p.sport, p.dport]:
+                    self.stats['ip6']['udp']['oicq'] += 1
                     pkg_info['protol']['top'] = 'OICQ'
                     self.oicq(p)
-            elif p.haslayer('SNMP'):
-                self.cnt['cnt_ip6']['snmp'] += 1
-                pkg_info['protol']['top'] = 'SNMP'
-            elif p.haslayer('ICMPv6'):
-                self.cnt['cnt_ip6']['icmp'] += 1
+                # other
+                else:
+                    self.stats['ip6']['udp']['other'] += 1
+
+            # ICMP
+            elif p.nh == 58:
+                self.stats['ip6']['icmp'] += 1
                 pkg_info['protol']['top'] = 'ICMP'
-        elif p.haslayer('ARP'):
-            self.cnt['cnt_arp'] += 1
-            pkg_info['protol']['top'] = 'ARP'
 
         pkg_info['no'] = self.count
         try:
@@ -161,7 +201,7 @@ class Analyzer:
             self.info.pop(0)
             self.info.append(pkg_info)
 
-        # print(self.cnt)
+        # print(self.stats)
 
         # print(pkg_info)
         # print()
@@ -174,7 +214,7 @@ class Analyzer:
             domain = p[http.HTTPRequest].Host.decode('ascii', 'replace')
             url = p[http.HTTPRequest].Host + p[http.HTTPRequest].Path
             url = parse.unquote(url.decode('ascii', 'replace'))
-            data = bytes(p[http.HTTPRequest].payload)
+            data = bytes(p[http.HTTPRequest].payload).decode('utf-8', 'replace')
             try:
                 form_data = parse.parse_qs(data)
             except Exception:

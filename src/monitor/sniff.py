@@ -7,7 +7,7 @@ import netifaces
 from scapy.config import conf
 from scapy.layers import l2, inet, inet6
 from scapy.packet import Packet
-from scapy.sendrecv import sendp, sniff, srp, send
+from scapy.sendrecv import sendp, sniff, srp, send, AsyncSniffer
 
 from monitor import attack
 
@@ -44,8 +44,6 @@ class Sniffer:
 
         net = ['%s/%s' % (i['addr'], i['netmask']) for i in addr[netifaces.AF_INET]]
         net6 = ['%s/%s' % (i['addr'].split('%')[0], i['netmask'].split('/')[1]) for i in addr[netifaces.AF_INET6]]
-        print(net)
-        print(net6)
         self.net = {str(ipaddress.IPv4Network(i, False)) for i in net}
         self.net6 = {str(ipaddress.IPv6Network(i, False)) for i in net6}
 
@@ -59,6 +57,7 @@ class Sniffer:
         print("(One of) Router IP6 : %s" % ', '.join(self.router_ip6))
         print("Router MAC          : %s" % self.router_mac)
 
+        self.sniffer = None
         self.block_target = False
 
     def scan(self, timeout=3) -> dict:
@@ -85,7 +84,8 @@ class Sniffer:
                 if res.haslayer(inet.ICMP) and res[inet.ICMP].type == 0 and res[inet.IP].src not in self.ip and res[
                     l2.Ether].src != self.mac:
                     self.rarp_table[res[l2.Ether].src].add(res[inet.IP].src)
-
+        # update router info
+        self.router_ip |= self.rarp_table.get(self.router_mac, set())
         return self.rarp_table
 
     def scan6(self, timeout=3):
@@ -115,6 +115,8 @@ class Sniffer:
                     self.rarp_table6[res[l2.Ether].src].add(str(ipaddress.IPv6Address((int(
                         ipaddress.IPv6Address(res[inet6.IPv6].src)) & 0xFFFFFFFFFFFFFFFF) + int(
                         ipaddress.IPv6Address(net6.split('/')[0])))))
+        # update router info
+        self.router_ip6 |= self.rarp_table6.get(self.router_mac, set())
         return self.rarp_table6
 
     def add(self, ip: str):
@@ -145,11 +147,8 @@ class Sniffer:
         :return:
         """
         self.target_mac = target_mac
-        self.target_ip = self.rarp_table.get(target_mac, [])
-        self.target_ip6 = self.rarp_table6.get(target_mac, [])
-
-        self.router_ip |= self.rarp_table.get(self.router_mac, [])
-        self.router_ip6 |= self.rarp_table6.get(self.router_mac, [])
+        self.target_ip = self.rarp_table.get(target_mac, set())
+        self.target_ip6 = self.rarp_table6.get(target_mac, set())
 
     def start(self, on_recv: callable, spoof_interval=5):
         """
@@ -157,15 +156,20 @@ class Sniffer:
         :param on_recv: a callback function when receiving a packet
         :param spoof_interval:
         """
+        self.sniffer = AsyncSniffer(lfilter=self._filter, iface=self.iface, prn=on_recv)
         self.spoof_interval = spoof_interval
         self.started = True
-        print("Start sniffing")
         if spoof_interval != 0:
             threading.Thread(target=self._spoof_router, daemon=False).start()
             threading.Thread(target=self._spoof_target, daemon=False).start()
-        threading.Thread(target=sniff,
-                         kwargs={'lfilter': self._filter, 'stop_filter': lambda p: not self.start,
-                                 'prn': on_recv, 'iface': self.iface}).start()
+        self.sniffer.start()
+        print("Sniffing started")
+
+    def stop(self):
+        self.started = False
+        if self.sniffer is not None:
+            self.sniffer.stop()
+        print("Sniffing stopped")
 
     def _spoof_router(self):
         """
@@ -218,6 +222,7 @@ class Sniffer:
         if p.haslayer(inet.IP):
             return p[inet.IP].src in self.target_ip or p[inet.IP].dst in self.target_ip
         elif p.haslayer(inet6.IPv6):
-            return p[inet6.IPv6].src in self.target_ip6 or p[inet6.IPv6].dst in self.target_ip6
+            return not p.haslayer(inet6.ICMPv6ND_NA) and (
+                    p[inet6.IPv6].src in self.target_ip6 or p[inet6.IPv6].dst in self.target_ip6)
         else:
             return False

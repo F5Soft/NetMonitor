@@ -1,337 +1,272 @@
 {% extends 'base.html' %}
+
 {% block body %}
-<div class="container mt-5">
-    <h5>流量监控</h5>
-    <div id="chart" class="m-auto"></div>
-</div>
-<div class="container">
-    <div class="row">
-        <div class="col-md-1"></div>
-        <div class="col-md-5">
-            <p class="text-center">
-                <strong>IPv4</strong>
-            </p>
-            <div class="progress-group">
-                <span class="progress-text">TCP</span><span class="progress-number"><b
-                        id="ip4_tcp_cnt">&nbsp;&nbsp;</b>/<text class="ip4_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip4_tcp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
+    <div class="container mt-5">
+        <h5>协议统计</h5>
+        <div id="chart" class="m-auto" hidden></div>
+    </div>
 
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">TLS</span><span class="progress-number"><b
-                                    id="ip4_tcp_tls_cnt">&nbsp;&nbsp;</b>/<text class="ip4_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_tcp_tls" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col ml-5">
+                <h5 class="mb-3">IPv4&nbsp;&nbsp;<b class="ip-all"></b> /
+                    <text class="all"></text>
+                </h5>
+
+                <div class="progress-group" id="ip-tcp">
+                    <span class="progress-text">TCP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-all"></text></span>
+                    <div class="progress sm">
+                        <div id="ip-tcp" class="progress-bar bg-primary" style="width: 0"></div>
                     </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">HTTP</span><span class="progress-number"><b
-                                    id="ip4_tcp_http_cnt">&nbsp;&nbsp;</b>/<text class="ip4_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_tcp_http" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-tcp-http">
+                    <span class="progress-text">HTTP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
                     </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">DNS</span><span class="progress-number"><b
-                                    id="ip4_tcp_dns_cnt">&nbsp;&nbsp;</b>/<text class="ip4_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_tcp_dns" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-tcp-tls">
+                    <span class="progress-text">TLS&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
                     </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">FTP</span><span class="progress-number"><b
-                                    id="ip4_tcp_ftp_cnt">&nbsp;&nbsp;</b>/<text class="ip4_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_tcp_ftp" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-tcp-telnet">
+                    <span class="progress-text">Telnet&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-tcp-ftp">
+                    <span class="progress-text">FTP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-tcp-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group" id="ip-udp">
+                    <span class="progress-text">UDP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-udp-dns">
+                    <span class="progress-text">DNS&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-udp-oicq">
+                    <span class="progress-text">OICQ&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip-udp-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group" id="ip-icmp">
+                    <span class="progress-text">ICMP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
                     </div>
                 </div>
             </div>
-            <div class="progress-group">
-                <span class="progress-text">UDP</span><span class="progress-number"><b
-                        id="ip4_udp_cnt">&nbsp;&nbsp;</b>/<text class="ip4_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip4_udp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-            <div class="container">
-                <div class="row">
 
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">OICQ</span><span class="progress-number"><b
-                                    id="ip4_udp_oicq_cnt">&nbsp;&nbsp;</b>/<text class="ip4_udp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_udp_oicq" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+            <div class="col mr-5">
+                <h5 class="mb-3">IPv6&nbsp;&nbsp;<b class="ip6-all"></b> /
+                    <text class="all"></text>
+                </h5>
+
+                                <div class="progress-group" id="ip6-tcp">
+                    <span class="progress-text">TCP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
+                    <div class="progress sm">
+                        <div id="ip6-tcp" class="progress-bar bg-primary" style="width: 0"></div>
                     </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">DNS</span><span class="progress-number"><b
-                                    id="ip4_udp_dns_cnt">&nbsp;&nbsp;</b>/<text class="ip4_udp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip4_udp_dns" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-tcp-http">
+                    <span class="progress-text">HTTP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-tcp-tls">
+                    <span class="progress-text">TLS&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-tcp-telnet">
+                    <span class="progress-text">Telnet&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-tcp-ftp">
+                    <span class="progress-text">FTP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-tcp-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-tcp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group" id="ip6-udp">
+                    <span class="progress-text">UDP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-udp-dns">
+                    <span class="progress-text">DNS&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-udp-oicq">
+                    <span class="progress-text">OICQ&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group ml-5" id="ip6-udp-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-udp-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-success" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group" id="ip6-icmp">
+                    <span class="progress-text">ICMP&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
                     </div>
                 </div>
             </div>
-            <div class="progress-group">
-                <span class="progress-text">ICMP</span><span class="progress-number"><b
-                        id="ip4_icmp_cnt">&nbsp;&nbsp;</b>/<text class="ip4_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip4_icmp" class="progress-bar progress-bar-green" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-            <div class="progress-group">
-                <span class="progress-text">SNMP</span>
-                <span class="progress-number"><b id="ip4_snmp_cnt">&nbsp;&nbsp;</b>/<text
-                        class="ip4_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip4_snmp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-        </div>
-        <div class="col-md-5">
-            <p class="text-center">
-                <strong>IPv6</strong>
-            </p>
-            <div class="progress-group">
-                <span class="progress-text">TCP</span><span class="progress-number"><b
-                        id="ip6_tcp_cnt">&nbsp;&nbsp;</b>/<text class="ip6_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip6_tcp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">TLS</span><span class="progress-number"><b
-                                    id="ip6_tcp_tls_cnt">&nbsp;&nbsp;</b>/<text class="ip6_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_tcp_tls" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">HTTP</span><span class="progress-number"><b
-                                    id="ip6_tcp_http_cnt">&nbsp;&nbsp;</b>/<text class="ip6_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_tcp_http" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">DNS</span><span class="progress-number"><b
-                                    id="ip6_tcp_dns_cnt">&nbsp;&nbsp;</b>/<text class="ip6_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_tcp_dns" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">FTP</span><span class="progress-number"><b
-                                    id="ip6_tcp_ftp_cnt">&nbsp;&nbsp;</b>/<text class="ip6_tcp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_tcp_ftp" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="progress-group">
-                <span class="progress-text">UDP</span><span class="progress-number"><b
-                        id="ip6_udp_cnt">&nbsp;&nbsp;</b>/<text class="ip6_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip6_udp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-            <div class="container">
-                <div class="row">
-
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">OICQ</span><span class="progress-number"><b
-                                    id="ip6_udp_oicq_cnt">&nbsp;&nbsp;</b>/<text class="ip6_udp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_udp_oicq" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-1"></div>
-                    <div class="col-md-11">
-                        <div class="progress-group">
-                            <span class="progress-text">DNS</span><span class="progress-number"><b
-                                    id="ip6_udp_dns_cnt">&nbsp;&nbsp;</b>/<text class="ip6_udp_all_cnt"></text></span>
-                            <div class="progress sm">
-                                <div id="ip6_udp_dns" class="progress-bar bg-success" style="width: 0"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="progress-group">
-                <span class="progress-text">ICMP</span><span class="progress-number"><b
-                        id="ip6_icmp_cnt">&nbsp;&nbsp;</b>/<text class="ip6_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip6_icmp" class="progress-bar progress-bar-green" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
-            <div class="progress-group">
-                <span class="progress-text">SNMP</span>
-                <span class="progress-number"><b id="ip6_snmp_cnt">&nbsp;&nbsp;</b>/<text
-                        class="ip6_all_cnt"></text></span>
-                <div class="progress sm">
-                    <div id="ip6_snmp" class="progress-bar bg-info" style="width: 0"></div>
-                </div>
-            </div><!-- /.progress-group -->
         </div>
     </div>
-    <div class="col-md-1"></div>
-</div>
-</div>
+
 {% endblock %}
 {% block script %}
-<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js" crossorigin="anonymous"></script>
-<script>
-    let window_j = $(window);
-    let chart_j = $("#chart");
-    set_size();
-    set_count2();
-    setInterval(set_count2, 10000);
-    function set_count2() {
-        $.post("#", "", (data) => {
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js" crossorigin="anonymous"></script>
+    <script>
+        $(".progress-group").addClass("mt-2", "mb-2");
 
-            $("#ip4_tcp").css("width", String(data.cnt_ip4.tcp.all / data.cnt_ip4.all * 100) + "%");
-            $("#ip4_udp").css("width", String(data.cnt_ip4.udp.all / data.cnt_ip4.all * 100) + "%");
-            $("#ip4_snmp").css("width", String(data.cnt_ip4.snmp / data.cnt_ip4.all * 100) + "%");
-            $("#ip4_icmp").css("width", String(data.cnt_ip4.icmp / data.cnt_ip4.all * 100) + "%");
+        set_count();
+        setInterval(set_count, 1000);
 
-            $("#ip4_tcp_tls").css("width", String(data.cnt_ip4.tcp.tls / data.cnt_ip4.tcp.all * 100) + "%");
-            $("#ip4_tcp_http").css("width", String(data.cnt_ip4.tcp.http / data.cnt_ip4.tcp.all * 100) + "%");
-            $("#ip4_tcp_dns").css("width", String(data.cnt_ip4.tcp.dns / data.cnt_ip4.tcp.all * 100) + "%");
-            $("#ip4_tcp_ftp").css("width", String(data.cnt_ip4.tcp.ftp / data.cnt_ip4.tcp.all * 100) + "%");
+        function set_count() {
+            $.post("#", "", (data) => {
+                $(".all").text(data.all);
+                $(".ip-all").text(data.ip.all);
+                $(".ip-tcp-all").text(data.ip.tcp.all);
+                $(".ip-udp-all").text(data.ip.udp.all);
+                $(".ip6-all").text(data.ip6.all);
+                $(".ip6-tcp-all").text(data.ip6.tcp.all);
+                $(".ip6-udp-all").text(data.ip6.udp.all);
 
-            // $("#ip4_udp_ssdp").css("width", String(data.cnt_ip4.udp.ssdp / data.cnt_ip4.udp.all * 100) + "%");
-            $("#ip4_udp_oicq").css("width", String(data.cnt_ip4.udp.oicq / data.cnt_ip4.udp.all * 100) + "%");
-            $("#ip4_udp_dns").css("width", String(data.cnt_ip4.udp.dns / data.cnt_ip4.udp.all * 100) + "%");
+                $("#ip-tcp .progress-bar").css("width", String(data.ip.tcp.all / data.ip.all * 100) + "%");
+                $("#ip-tcp b").text(data.ip.tcp.all);
+                $("#ip-udp .progress-bar").css("width", String(data.ip.udp.all / data.ip.all * 100) + "%");
+                $("#ip-udp b").text(data.ip.udp.all);
+                $("#ip-icmp .progress-bar").css("width", String(data.ip.icmp / data.ip.all * 100) + "%");
+                $("#ip-icmp b").text(data.ip.icmp);
 
-            $("#ip6_tcp").css("width", String(data.cnt_ip6.tcp.all / data.cnt_ip6.all * 100) + "%");
-            $("#ip6_udp").css("width", String(data.cnt_ip6.udp.all / data.cnt_ip6.all * 100) + "%");
-            $("#ip6_snmp").css("width", String(data.cnt_ip6.snmp / data.cnt_ip6.all * 100) + "%");
-            $("#ip6_icmp").css("width", String(data.cnt_ip6.icmp / data.cnt_ip6.all * 100) + "%");
+                $("#ip-tcp-tls .progress-bar").css("width", String(data.ip.tcp.tls / data.ip.tcp.all * 100) + "%");
+                $("#ip-tcp-tls b").text(data.ip.tcp.tls);
+                $("#ip-tcp-http .progress-bar").css("width", String(data.ip.tcp.http / data.ip.tcp.all * 100) + "%");
+                $("#ip-tcp-http b").text(data.ip.tcp.http);
+                $("#ip-tcp-telnet .progress-bar").css("width", String(data.ip.tcp.telnet / data.ip.tcp.all * 100) + "%");
+                $("#ip-tcp-telnet b").text(data.ip.tcp.telnet);
+                $("#ip-tcp-ftp .progress-bar").css("width", String(data.ip.tcp.ftp / data.ip.tcp.all * 100) + "%");
+                $("#ip-tcp-ftp b").text(data.ip.tcp.ftp);
+                $("#ip-tcp-other .progress-bar").css("width", String(data.ip.tcp.other / data.ip.tcp.all * 100) + "%");
+                $("#ip-tcp-other b").text(data.ip.tcp.other);
 
-            $("#ip6_tcp_tls").css("width", String(data.cnt_ip6.tcp.tls / data.cnt_ip6.tcp.all * 100) + "%");
-            $("#ip6_tcp_http").css("width", String(data.cnt_ip6.tcp.http / data.cnt_ip6.tcp.all * 100) + "%");
-            $("#ip6_tcp_dns").css("width", String(data.cnt_ip6.tcp.dns / data.cnt_ip6.tcp.all * 100) + "%");
-            $("#ip6_tcp_ftp").css("width", String(data.cnt_ip6.tcp.ftp / data.cnt_ip6.tcp.all * 100) + "%");
-            
+                $("#ip-udp-oicq .progress-bar").css("width", String(data.ip.udp.oicq / data.ip.udp.all * 100) + "%");
+                $("#ip-udp-oicq b").text(data.ip.udp.oicq);
+                $("#ip-udp-dns .progress-bar").css("width", String(data.ip.udp.dns / data.ip.udp.all * 100) + "%");
+                $("#ip-udp-dns b").text(data.ip.udp.dns);
+                $("#ip-udp-other .progress-bar").css("width", String(data.ip.udp.other / data.ip.udp.all * 100) + "%");
+                $("#ip-udp-other b").text(data.ip.udp.other);
 
-            // // $("#ip6_udp_ssdp").css("width", String(data.cnt_ip6.udp.ssdp / data.cnt_ip6.udp.all * 100) + "%");
-            $("#ip6_udp_oicq_").css("width", String(data.cnt_ip6.udp.oicq / data.cnt_ip6.udp.all * 100) + "%");
-            $("#ip6_udp_dns").css("width", String(data.cnt_ip6.udp.dns / data.cnt_ip6.udp.all * 100) + "%");
+                                $("#ip6-tcp .progress-bar").css("width", String(data.ip6.tcp.all / data.ip6.all * 100) + "%");
+                $("#ip6-tcp b").text(data.ip6.tcp.all);
+                $("#ip6-udp .progress-bar").css("width", String(data.ip6.udp.all / data.ip6.all * 100) + "%");
+                $("#ip6-udp b").text(data.ip6.udp.all);
+                $("#ip6-icmp .progress-bar").css("width", String(data.ip6.icmp / data.ip6.all * 100) + "%");
+                $("#ip6-icmp b").text(data.ip6.icmp);
 
-            $("#ip4_tcp_cnt").text(data.cnt_ip4.tcp.all);
-            $("#ip4_tcp_tls_cnt").text(data.cnt_ip4.tcp.tls);
-            $("#ip4_tcp_http_cnt").text(data.cnt_ip4.tcp.http);
-            $("#ip4_tcp_dns_cnt").text(data.cnt_ip4.tcp.dns);
-            $("#ip4_tcp_ftp_cnt").text(data.cnt_ip4.tcp.ftp);
-            $("#ip4_udp_cnt").text(data.cnt_ip4.udp.all);
-            // // $("#ip4_udp_ssdp_cnt").text(data.cnt_ip4.udp.ssdp);
-            $("#ip4_udp_oicq_cnt").text(data.cnt_ip4.udp.oicq);
-            $("#ip4_udp_dns_cnt").text(data.cnt_ip4.udp.dns);
-            $("#ip4_icmp_cnt").text(data.cnt_ip4.icmp);
-            $("#ip4_snmp_cnt").text(data.cnt_ip4.snmp);
+                $("#ip6-tcp-tls .progress-bar").css("width", String(data.ip6.tcp.tls / data.ip6.tcp.all * 100) + "%");
+                $("#ip6-tcp-tls b").text(data.ip6.tcp.tls);
+                $("#ip6-tcp-http .progress-bar").css("width", String(data.ip6.tcp.http / data.ip6.tcp.all * 100) + "%");
+                $("#ip6-tcp-http b").text(data.ip6.tcp.http);
+                $("#ip6-tcp-telnet .progress-bar").css("width", String(data.ip6.tcp.telnet / data.ip6.tcp.all * 100) + "%");
+                $("#ip6-tcp-telnet b").text(data.ip6.tcp.telnet);
+                $("#ip6-tcp-ftp .progress-bar").css("width", String(data.ip6.tcp.ftp / data.ip6.tcp.all * 100) + "%");
+                $("#ip6-tcp-ftp b").text(data.ip6.tcp.ftp);
+                $("#ip6-tcp-other .progress-bar").css("width", String(data.ip6.tcp.other / data.ip6.tcp.all * 100) + "%");
+                $("#ip6-tcp-other b").text(data.ip6.tcp.other);
 
-            $(".ip4_all_cnt").text(data.cnt_ip4.all);
-            $(".ip4_tcp_all_cnt").text(data.cnt_ip4.tcp.all);
-            $(".ip4_udp_all_cnt").text(data.cnt_ip4.udp.all);
-
-            $("#ip6_tcp_cnt").text(data.cnt_ip6.tcp.all);
-            $("#ip6_tcp_tls_cnt").text(data.cnt_ip6.tcp.tls);
-            $("#ip6_tcp_http_cnt").text(data.cnt_ip6.tcp.http);
-            $("#ip6_tcp_dns_cnt").text(data.cnt_ip6.tcp.dns);
-            $("#ip6_tcp_ftp_cnt").text(data.cnt_ip6.tcp.ftp);
-            $("#ip6_udp_cnt").text(data.cnt_ip6.udp.all);
-            // // $("#ip6_udp_ssdp_cnt").text(data.cnt_ip6.udp.ssdp);
-            $("#ip6_udp_oicq_cnt").text(data.cnt_ip6.udp.oicq);
-            $("#ip6_udp_dns_cnt").text(data.cnt_ip6.udp.dns);
-            $("#ip6_icmp_cnt").text(data.cnt_ip6.icmp);
-            $("#ip6_snmp_cnt").text(data.cnt_ip6.snmp);
-
-            $(".ip6_all_cnt").text(data.cnt_ip6.all);
-            $(".ip6_tcp_all_cnt").text(data.cnt_ip6.tcp.all);
-            $(".ip6_udp_all_cnt").text(data.cnt_ip6.udp.all);
-
-        }, "json");
-    }
-    let chart = echarts.init(chart_j.get(0));
-    let option = {
-        title: { text: 'IPv4', color: "#7bb6f2" },
-        color: ["#7bb6f2"],
-        xAxis: { type: "category", data: ["IPv4", "IPv6"], "axisLabel": { interval: 0 } },
-        yAxis: { type: 'value' },
-        series: [{
-            data: [0, 0],
-            type: 'bar',
-            label: { show: true, position: 'top', color: '#000000', fontSize: 20 }
-        }]
-
-    };
-    chart.setOption(option);
-    set_count();
-
-    window.onresize = () => {
-        set_size();
-        chart.resize();
-    }
-
-    setInterval(set_count, 1000);
-
-    function set_size() {
-        if (window_j.width() > window_j.height()) {
-            chart_j.width(window_j.width() * 0.6);
-            chart_j.height(window_j.width() * 0.3);
-        } else {
-            chart_j.width(window_j.width() * 0.95);
-            chart_j.height(window_j.width() * 0.7);
+                $("#ip6-udp-oicq .progress-bar").css("width", String(data.ip6.udp.oicq / data.ip6.udp.all * 100) + "%");
+                $("#ip6-udp-oicq b").text(data.ip6.udp.oicq);
+                $("#ip6-udp-dns .progress-bar").css("width", String(data.ip6.udp.dns / data.ip6.udp.all * 100) + "%");
+                $("#ip6-udp-dns b").text(data.ip6.udp.dns);
+                $("#ip6-udp-other .progress-bar").css("width", String(data.ip6.udp.other / data.ip6.udp.all * 100) + "%");
+                $("#ip6-udp-other b").text(data.ip6.udp.other);
+            }, "json");
         }
-    }
-
-    function set_count() {
-        $.post("#", "", (data) => {
-            option.series[0].data = [data.cnt_ip4.all, data.cnt_ip6.all];
-            chart.setOption(option);
-        }, "json");
-    }
-</script>
+    </script>
 {% endblock %}
