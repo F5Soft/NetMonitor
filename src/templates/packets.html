@@ -1,23 +1,20 @@
 {% extends 'base.html' %}
 {% block body %}
     <div class="container mt-5">
-        <div class="container">
-            <h5 class="mb-4">报文详细信息</h5>
-            <table class="table">
-                <thead class="thead-light">
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">源IP</th>
-                    <th scope="col">目的IP</th>
-                    <th scope="col">源端口</th>
-                    <th scope="col">目的端口</th>
-                    <th scope="col">最高协议</th>
-                </tr>
-                </thead>
-                <tbody id="packets">
-                </tbody>
-            </table>
-        </div>
+        <table class="table">
+            <thead class="thead-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">源IP</th>
+                <th scope="col">目的IP</th>
+                <th scope="col">源端口</th>
+                <th scope="col">目的端口</th>
+                <th scope="col">最高协议</th>
+            </tr>
+            </thead>
+            <tbody id="packets">
+            </tbody>
+        </table>
     </div>
 {% endblock %}
 {% block script %}

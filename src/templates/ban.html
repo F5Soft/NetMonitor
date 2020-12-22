@@ -2,24 +2,41 @@
 {% block body %}
     <div class="container mt-5">
         <div class="row">
-            <div class="col-md-12">
-                <h5 class="mb-4">网络连接管理</h5>
-                <form method="post">
+            <div class="col">
+                <h4 class="mb-2" style="color: var(--color-primary-dark)">断网规则设置</h4>
+                <hr class="mb-4">
+                <form id="form-ban">
                     <div class="form-group mb-4">
-                        <label for="domain_ban">禁访域名</label>
-                        <input id="domain_ban" name="domain_ban" type="text" class="form-control" placeholder="请输入域名"
-                            required>
+                        <label for="ip-ban">IP黑名单</label>
+                        <textarea id="ip-ban" name="ip-ban" class="form-control" placeholder="请输入IP或CIDR，多个用空格分隔"
+                                  rows="3">{% for i in ip_ban %}{{ i }} {% endfor %}</textarea>
                     </div>
                     <div class="form-group mb-4">
-                        <label for="word_ban">敏感词</label>
-                        <input id="word_ban" name="word_ban" type="text" class="form-control" placeholder="请输入敏感词" required>
+                        <label for="domain-ban">域名黑名单</label>
+                        <textarea id="domain-ban" name="domain-ban" class="form-control" placeholder="请输入域名，多个用空格分隔"
+                                  rows="3">{% for i in domain_ban %}{{ i }} {% endfor %}</textarea>
                     </div>
-    
-                    <div class="btn  btn-block btn-lg">
-                        <button type="submit" class="btn btn-primary">提交禁用词</button>
+                    <div class="form-group mb-4">
+                        <label for="content-ban">敏感词</label>
+                        <textarea id="content-ban" name="content-ban" class="form-control" placeholder="请输入敏感词，多个用空格分隔"
+                                  rows="3">{% for i in content_ban %}{{ i }} {% endfor %}</textarea>
                     </div>
+                    <button id="btn-ban" type="button" class="btn btn-primary">更新断网规则</button>
                 </form>
+            </div>
+            <div class="col">
+                <h4 class="mb-2" style="color: var(--color-primary-dark)">断网攻击方法</h4>
+                <hr class="mb-4">
             </div>
         </div>
     </div>
+{% endblock %}
+{% block script %}
+    <script>
+        $("#btn-ban").click(() => {
+            $.post("/ban/?act=ban", $("#form-ban").serialize(), () => {
+                location.reload();
+            }, "json");
+        })
+    </script>
 {% endblock %}
