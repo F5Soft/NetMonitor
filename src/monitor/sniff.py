@@ -84,7 +84,7 @@ class Sniffer:
                 if res.haslayer(inet.ICMP) and res[inet.ICMP].type == 0 and res[inet.IP].src not in self.ip and res[
                     l2.Ether].src != self.mac:
                     self.rarp_table[res[l2.Ether].src].add(res[inet.IP].src)
-        # update router info
+        # update router packets
         self.router_ip |= self.rarp_table.get(self.router_mac, set())
         return self.rarp_table
 
@@ -115,7 +115,7 @@ class Sniffer:
                     self.rarp_table6[res[l2.Ether].src].add(str(ipaddress.IPv6Address((int(
                         ipaddress.IPv6Address(res[inet6.IPv6].src)) & 0xFFFFFFFFFFFFFFFF) + int(
                         ipaddress.IPv6Address(net6.split('/')[0])))))
-        # update router info
+        # update router packets
         self.router_ip6 |= self.rarp_table6.get(self.router_mac, set())
         return self.rarp_table6
 

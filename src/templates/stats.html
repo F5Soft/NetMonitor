@@ -2,11 +2,6 @@
 
 {% block body %}
     <div class="container mt-5">
-        <h5>协议统计</h5>
-        <div id="chart" class="m-auto" hidden></div>
-    </div>
-
-    <div class="container mt-4">
         <div class="row">
             <div class="col ml-5">
                 <h5 class="mb-3">IPv4&nbsp;&nbsp;<b class="ip-all"></b> /
@@ -100,6 +95,14 @@
                         <div class="progress-bar bg-primary" style="width: 0"></div>
                     </div>
                 </div>
+
+                <div class="progress-group" id="ip-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="col mr-5">
@@ -107,7 +110,7 @@
                     <text class="all"></text>
                 </h5>
 
-                                <div class="progress-group" id="ip6-tcp">
+                <div class="progress-group" id="ip6-tcp">
                     <span class="progress-text">TCP&nbsp;&nbsp;</span>
                     <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
                     <div class="progress sm">
@@ -188,7 +191,15 @@
                 </div>
 
                 <div class="progress-group" id="ip6-icmp">
-                    <span class="progress-text">ICMP&nbsp;&nbsp;</span>
+                    <span class="progress-text">ICMPv6&nbsp;&nbsp;</span>
+                    <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
+                    <div class="progress sm">
+                        <div class="progress-bar bg-primary" style="width: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-group" id="ip6-other">
+                    <span class="progress-text">其他&nbsp;&nbsp;</span>
                     <span class="progress-number"><b></b> / <text class="ip6-all"></text></span>
                     <div class="progress sm">
                         <div class="progress-bar bg-primary" style="width: 0"></div>
@@ -223,6 +234,8 @@
                 $("#ip-udp b").text(data.ip.udp.all);
                 $("#ip-icmp .progress-bar").css("width", String(data.ip.icmp / data.ip.all * 100) + "%");
                 $("#ip-icmp b").text(data.ip.icmp);
+                $("#ip-other .progress-bar").css("width", String(data.ip.other / data.ip.all * 100) + "%");
+                $("#ip-other b").text(data.ip.other);
 
                 $("#ip-tcp-tls .progress-bar").css("width", String(data.ip.tcp.tls / data.ip.tcp.all * 100) + "%");
                 $("#ip-tcp-tls b").text(data.ip.tcp.tls);
@@ -242,12 +255,14 @@
                 $("#ip-udp-other .progress-bar").css("width", String(data.ip.udp.other / data.ip.udp.all * 100) + "%");
                 $("#ip-udp-other b").text(data.ip.udp.other);
 
-                                $("#ip6-tcp .progress-bar").css("width", String(data.ip6.tcp.all / data.ip6.all * 100) + "%");
+                $("#ip6-tcp .progress-bar").css("width", String(data.ip6.tcp.all / data.ip6.all * 100) + "%");
                 $("#ip6-tcp b").text(data.ip6.tcp.all);
                 $("#ip6-udp .progress-bar").css("width", String(data.ip6.udp.all / data.ip6.all * 100) + "%");
                 $("#ip6-udp b").text(data.ip6.udp.all);
                 $("#ip6-icmp .progress-bar").css("width", String(data.ip6.icmp / data.ip6.all * 100) + "%");
                 $("#ip6-icmp b").text(data.ip6.icmp);
+                $("#ip6-other .progress-bar").css("width", String(data.ip6.other / data.ip6.all * 100) + "%");
+                $("#ip6-other b").text(data.ip6.other);
 
                 $("#ip6-tcp-tls .progress-bar").css("width", String(data.ip6.tcp.tls / data.ip6.tcp.all * 100) + "%");
                 $("#ip6-tcp-tls b").text(data.ip6.tcp.tls);

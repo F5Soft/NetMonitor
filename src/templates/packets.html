@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block body %}
+    <div class="container mt-5">
+        <div class="container">
+            <h5 class="mb-4">报文详细信息</h5>
+            <table class="table">
+                <thead class="thead-light">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">源IP</th>
+                    <th scope="col">目的IP</th>
+                    <th scope="col">源端口</th>
+                    <th scope="col">目的端口</th>
+                    <th scope="col">最高协议</th>
+                </tr>
+                </thead>
+                <tbody id="packets">
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+{% block script %}
+    <script>
+        set_count();
+        setInterval(set_count, 1000);
+
+        function set_count() {
+            $.post("#", "", (data) => {
+                let html = "";
+                for (let i = data.length - 1; i >= 0; i--) {
+                    html += "<tr><th scope=\"row\">" + data[i].no + "</th>";
+                    html += "<td>" + data[i].src + "</td>";
+                    html += "<td>" + data[i].dst + "</td>";
+                    html += "<td>" + data[i].psrc + "</td>";
+                    html += "<td>" + data[i].pdst + "</td>";
+                    html += "<td>" + data[i].proto + "</td></tr>";
+                }
+                $("#packets").html(html);
+            }, "json");
+        }
+
+    </script>
+{% endblock %}

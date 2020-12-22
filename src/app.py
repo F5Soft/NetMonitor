@@ -50,18 +50,18 @@ def stats():
         return jsonify(an.stats)
 
 
-@app.route('/detail', methods=['GET', 'POST'])
-def detail():
+@app.route('/packets', methods=['GET', 'POST'])
+def packets():
     if request.method == 'GET':
-        return render_template('detail.html', title='数据报文解析')
+        return render_template('packets.html', title='保温信息')
     elif request.method == 'POST':
-        return jsonify(an.info)
+        return jsonify(an.packets)
 
 
 @app.route('/ban', methods=['GET', 'POST'])
 def ban():
     if request.method == 'GET':
-        return render_template('ban.html', title='流量管理')
+        return render_template('ban.html', title='断网规则')
     elif request.method == 'POST':
         domain_ban = request.form.get('domain_ban', None)
         word_ban = request.form.get('word_ban', None)
@@ -70,7 +70,7 @@ def ban():
 @app.route('/usrinfo', methods=['GET', 'POST'])
 def usrinfo():
     if request.method == 'GET':
-        return render_template('usrinfo.html', title='个人信息')
+        return render_template('usrinfo.html', title='用户信息')
     elif request.method == 'POST':
         ans = []
         for k, v in an.password.items():
