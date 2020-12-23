@@ -6,18 +6,26 @@ arp_ban = False
 
 
 def icmp_unreachable(p: Packet):
-    if p.haslayer(inet.ICMP) and p[inet.ICMP].type == 3:
+    if p.haslayer(inet.ICMP) and p[inet.ICMP].type in [3, 5]:
+        return
+    if p.haslayer(inet6.ICMPv6ND_NA) or p.haslayer(inet6.ICMPv6DestUnreach) or p.haslayer(inet6.ICMPv6ND_Redirect):
         return
     if p[l2.Ether].type == 2048:
-        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=3) / p[inet.IP]
+        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=3, code=1) / p[inet.IP]
     else:
-        return
-        # exp = inet6.IPv6(src=p[inet6.IPv6].dst, dst=p[inet6.IPv6].src) / inet.ICMP(type=3)
+        exp = inet6.IPv6(src=p[inet6.IPv6].dst, dst=p[inet6.IPv6].src) / inet6.ICMPv6DestUnreach() / p[inet6.IPv6]
     send(exp, verbose=False)
 
 
 def icmp_redirect(p: Packet):
-    pass
+    if p.haslayer(inet.ICMP) and p[inet.ICMP].type in [3, 5]:
+        return
+    if p.haslayer(inet6.ICMPv6ND_NA) or p.haslayer(inet6.ICMPv6DestUnreach) or p.haslayer(inet6.ICMPv6ND_Redirect):
+        return
+    if p[l2.Ether].type == 2048:
+        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=5)
+    else:
+        pass
 
 
 def tcp_rst(p: Packet):

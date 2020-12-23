@@ -43,7 +43,9 @@ def index():
         sn.scan6(timeout=timeout)
         return jsonify(True)
     if request.method == 'POST' and request.args.get('act') == 'sniff':
-        sn.stop()
+        if sn.started:
+            sn.stop()
+            return jsonify(True)
         mac = request.form.get('mac', '').strip()
         interval = int(request.form.get('interval', '0').strip())
         sn.set(mac)
@@ -117,13 +119,11 @@ def usrinfo():
     if request.method == 'GET':
         return render_template('usrinfo.html', title='用户信息')
     if request.method == 'POST':
-        ans = []
-        for k, v in an.password.items():
-            ans.append((k, v[0], v[1]))
-        print(ans)
+        ans = an.ans
+        # print(ans)
         return jsonify(ans)
 
 
 if __name__ == '__main__':
     logging.getLogger('werkzeug').disabled = True
-    app.run(host='0.0.0.0', port=80, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=80, debug=False, use_reloader=False)

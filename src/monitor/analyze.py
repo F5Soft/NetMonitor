@@ -24,6 +24,7 @@ class Analyzer:
         Traffic Analyzer Class
         :param log_path: pcap export path
         """
+        self.ans = [([0] * 3) for i in range(5)]
         self.ban_status = [False, False, False, False, False]  # arp/ndp, icmp3, icmp5, tcp, dns
         self.ban_method = [False, False, False, False, False]
 
@@ -57,6 +58,7 @@ class Analyzer:
         self.web_stats = defaultdict(int)
         self.password = dict()
 
+        self._prev = None
         self._ftp_username = None
         self._telnet_buf = None
 
@@ -65,6 +67,16 @@ class Analyzer:
         Analyze single packet
         :param p: scapy packet
         """
+        if p.haslayer(inet.TCP):
+            if p[inet.TCP].payload == self._prev:
+                return
+            self._prev = p[inet.TCP].payload
+        if p.haslayer(inet.UDP):
+            if p[inet.UDP].payload == self._prev:
+                return
+            self._prev = p[inet.UDP].payload
+        # todo: remove duplicate ICMP datagram caused by IP forwarding
+
         self.stats['all'] += 1
         packet = {'no': self.stats['all'], 'src': '', 'dst': '', 'psrc': '', 'pdst': '', 'proto': '', 'size': len(p)}
 
@@ -247,7 +259,7 @@ class Analyzer:
                 json_data = {}
             self.add_stats(domain)
             self.add_history(url)
-            print(form_data)
+
             if b'username' in form_data:
                 username = form_data[b'username'][0].decode('ascii', 'replace')
                 password = form_data.get(b'password', b'')[0].decode('ascii', 'replace')
@@ -332,3 +344,7 @@ class Analyzer:
 
     def add_password(self, where: str, username: str, password: str):
         self.password[where] = (username, password)
+        if len(self.ans) > 4:
+            self.ans.pop(0)
+        for k, v in self.password.items():
+            self.ans.append((k, v[0], v[1]))
