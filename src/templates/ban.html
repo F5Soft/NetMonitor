@@ -2,7 +2,7 @@
 {% block body %}
     <div class="container mt-5">
         <div class="row">
-            <div class="col">
+            <div class="col mr-3">
                 <h4 class="mb-2" style="color: var(--color-primary-dark)">断网规则设置</h4>
                 <hr class="mb-4">
                 <form id="form-ban">
@@ -21,22 +21,87 @@
                         <textarea id="content-ban" name="content-ban" class="form-control" placeholder="请输入敏感词，多个用空格分隔"
                                   rows="3">{% for i in content_ban %}{{ i }} {% endfor %}</textarea>
                     </div>
-                    <button id="btn-ban" type="button" class="btn btn-primary">更新断网规则</button>
+                    <button id="btn-rule" type="button" class="btn btn-primary">更新断网规则</button>
                 </form>
             </div>
-            <div class="col">
+            <div class="col ml-3">
                 <h4 class="mb-2" style="color: var(--color-primary-dark)">断网攻击方法</h4>
                 <hr class="mb-4">
+                <button id="method-0" type="button" class="btn btn-block">ARP/NDP再欺骗</button>
+                <button id="method-1" type="button" class="btn btn-block">ICMP不可达攻击</button>
+                <button id="method-2" type="button" class="btn btn-block">ICMP重定向攻击</button>
+                <button id="method-3" type="button" class="btn btn-block">TCP Reset攻击</button>
+                <button id="method-4" type="button" class="btn btn-block">DNS欺骗（污染）</button>
+                <h4 class="mt-5 mb-2" style="color: var(--color-primary-dark)">当前主机状态</h4>
+                <hr class="mb-4">
+                {% if status %}
+                    <h5 class="mb-3 text-danger">断网中</h5>
+                    <button id="btn-unban" type="button" class="btn btn-danger">解除断网</button>
+                {% else %}
+                    <h5 class="mb-3 text-success">正常上网中</h5>
+                    <button id="btn-ban" type="button" class="btn btn-danger">执行断网</button>
+                {% endif %}
             </div>
         </div>
     </div>
 {% endblock %}
 {% block script %}
     <script>
-        $("#btn-ban").click(() => {
-            $.post("/ban/?act=ban", $("#form-ban").serialize(), () => {
+        $(document).ready(() => {
+            $.post("/ban/?act=method", '', (data) => {
+                let btns = $(".btn-block");
+                for (let i in btns) {
+                    if (data[i]) {
+                        $(btns.get(i)).addClass("btn-danger");
+                    } else {
+                        $(btns.get(i)).addClass("btn-primary");
+                    }
+                }
+            }, "json");
+        });
+
+        $("#btn-rule").click(() => {
+            $.post("/ban/?act=rule", $("#form-ban").serialize(), () => {
                 location.reload();
             }, "json");
-        })
+        });
+
+        $("#btn-ban").click(() => {
+            $.post("/ban/?act=ban", '', () => {
+                location.reload();
+            }, "json");
+        });
+
+        $("#btn-unban").click(() => {
+            $.post("/ban/?act=unban", '', () => {
+                location.reload();
+            }, "json");
+        });
+
+        $("#method-0").click(() => {
+            $.post("/ban/?act=0", '', () => {
+                location.reload();
+            }, "json");
+        });
+        $("#method-1").click(() => {
+            $.post("/ban/?act=1", '', () => {
+                location.reload();
+            }, "json");
+        });
+        $("#method-2").click(() => {
+            $.post("/ban/?act=2", '', () => {
+                location.reload();
+            }, "json");
+        });
+        $("#method-3").click(() => {
+            $.post("/ban/?act=3", '', () => {
+                location.reload();
+            }, "json");
+        });
+        $("#method-4").click(() => {
+            $.post("/ban/?act=4", '', () => {
+                location.reload();
+            }, "json");
+        });
     </script>
 {% endblock %}

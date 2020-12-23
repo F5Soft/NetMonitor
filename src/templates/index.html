@@ -17,7 +17,24 @@
                 <p>{{ router_mac }}<br></p>
             </div>
             <div class="col">
-                <h4 class="mb-2" style="color: var(--color-primary-dark)">LAN扫描</h4>
+                <h4 class="mb-2" style="color: var(--color-primary-dark)">接口设置</h4>
+                <hr class="mb-4">
+                <form id="form-iface" class="mt-3">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="iface">当前网络接口</label>
+                                <input id="iface" class="form-control form-control-sm" type="text" name="iface"
+                                       value="{{ iface }}">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <button id="btn-iface" class="btn btn-primary mt-4" type="button">重新设置接口</button>
+                        </div>
+                    </div>
+                </form>
+
+                <h4 class="mb-2 mt-4" style="color: var(--color-primary-dark)">LAN扫描</h4>
                 <hr class="mb-4">
                 {% for k in rarp_table %}<b>{{ k }}</b>
                     <p>{% for i in rarp_table[k] %}{{ i }}<br>{% endfor %}</p>{% endfor %}
@@ -42,7 +59,7 @@
         </div>
     </div>
 
-    <div class="container mt-5">
+    <div class="container mt-4">
         <h4 class="mb-2" style="color: var(--color-primary-dark)">监控设置</h4>
         <hr class="mb-3">
         {% if started %}
@@ -75,6 +92,17 @@
 {% endblock %}
 {% block script %}
     <script>
+        $("#btn-iface").click(() => {
+            let form = $("#form-scan");
+            $.post("/?act=iface", $("#form-iface").serialize(), (data) => {
+                if (data) {
+                    location.reload();
+                } else {
+                    alert("未找到该接口，请确保输入正确");
+                }
+            }, "json");
+        });
+
         $("#btn-scan").click(() => {
             let form = $("#form-scan");
             form.attr("hidden", true);

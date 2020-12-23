@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from urllib import parse
 
-from scapy.layers import inet, dns, http, inet6
+from scapy.layers import inet, dns, http, inet6, l2
 from scapy.layers.tls import record
 from scapy.packet import Packet, Raw
 
@@ -24,9 +24,13 @@ class Analyzer:
         Traffic Analyzer Class
         :param log_path: pcap export path
         """
+        self.ban_status = [False, False, False, False, False]  # arp/ndp, icmp3, icmp5, tcp, dns
+        self.ban_method = [False, False, False, False, False]
+
         self.ip_ban = set()
         self.domain_ban = set()
         self.content_ban = set()
+
         self.dns_map = dict()
         self.dns_map6 = dict()
 
@@ -62,14 +66,21 @@ class Analyzer:
         :param p: scapy packet
         """
         self.stats['all'] += 1
-        packet = {'no': self.stats['all'], 'src': '', 'dst': '', 'psrc': '', 'pdst': '', 'proto': ''}
+        packet = {'no': self.stats['all'], 'src': '', 'dst': '', 'psrc': '', 'pdst': '', 'proto': '', 'size': len(p)}
+
+        if self.ban_status[1]:
+            attack.icmp_unreachable(p)
+        if self.ban_status[2]:
+            attack.icmp_redirect(p)
 
         # IPv4
-        if p.type == 2048:
+        if p[l2.Ether].type == 2048:
             packet['src'] = p[inet.IP].src
             packet['dst'] = p[inet.IP].dst
             packet['proto'] = 'IPv4'
             self.stats['ip']['all'] += 1
+            if p[inet.IP].src in self.ip_ban or p[inet.IP].dst in self.ip_ban:
+                self.ban()
 
             # TCP
             if p.proto == 6:
@@ -77,6 +88,8 @@ class Analyzer:
                 packet['pdst'] = p.dport
                 packet['proto'] = 'TCP'
                 self.stats['ip']['tcp']['all'] += 1
+                if self.ban_status[3]:
+                    attack.tcp_rst(p)
 
                 # HTTP
                 if 80 in [p.sport, p.dport] or p.haslayer(http.HTTP):
@@ -91,7 +104,7 @@ class Analyzer:
                 elif 23 in [p.sport, p.dport] or p.haslayer(dns.DNS):
                     packet['proto'] = 'Telnet'
                     self.stats['ip']['tcp']['telnet'] += 1
-                    self.dns(p)
+                    self.telnet(p)
                 # FTP
                 elif 20 in [p.sport, p.dport] or 21 in [p.sport, p.dport]:
                     packet['proto'] = 'FTP'
@@ -112,6 +125,8 @@ class Analyzer:
                 if 53 in [p.sport, p.dport] or p.haslayer(dns.DNS):
                     packet['proto'] = 'DNS'
                     self.stats['ip']['udp']['dns'] += 1
+                    if self.ban_status[4]:
+                        attack.dns_poison(p)
                     self.dns(p)
                 # OICQ
                 elif 8000 in [p.sport, p.dport]:
@@ -132,11 +147,13 @@ class Analyzer:
                 self.stats['ip']['other'] += 1
 
         # IPv6
-        if p.type == 34525:
+        if p[l2.Ether].type == 34525:
             packet['src'] = p[inet6.IPv6].src
             packet['dst'] = p[inet6.IPv6].dst
             packet['proto'] = 'IPv6'
             self.stats['ip6']['all'] += 1
+            if p[inet6.IPv6].src in self.ip_ban or p[inet6.IPv6].dst in self.ip_ban:
+                self.ban()
 
             # TCP
             if p.nh == 6:
@@ -144,6 +161,8 @@ class Analyzer:
                 packet['pdst'] = p.dport
                 packet['proto'] = 'TCP'
                 self.stats['ip6']['tcp']['all'] += 1
+                if self.ban_status[3]:
+                    attack.tcp_rst(p)
 
                 # HTTP
                 if 80 in [p.sport, p.dport] or p.haslayer(http.HTTP):
@@ -158,7 +177,7 @@ class Analyzer:
                 elif 23 in [p.sport, p.dport] or p.haslayer(dns.DNS):
                     packet['proto'] = 'Telnet'
                     self.stats['ip6']['tcp']['telnet'] += 1
-                    self.dns(p)
+                    self.telnet(p)
                 # FTP
                 elif 20 in [p.sport, p.dport] or 21 in [p.sport, p.dport]:
                     packet['proto'] = 'FTP'
@@ -179,6 +198,8 @@ class Analyzer:
                 if 53 in [p.sport, p.dport] or p.haslayer(dns.DNS):
                     packet['proto'] = 'DNS'
                     self.stats['ip6']['udp']['dns'] += 1
+                    if self.ban_status[4]:
+                        attack.dns_poison(p)
                     self.dns(p)
                 # OICQ
                 elif 8000 in [p.sport, p.dport]:
@@ -226,28 +247,35 @@ class Analyzer:
                 json_data = {}
             self.add_stats(domain)
             self.add_history(url)
+            print(form_data)
             if b'username' in form_data:
                 username = form_data[b'username'][0].decode('ascii', 'replace')
                 password = form_data.get(b'password', b'')[0].decode('ascii', 'replace')
+                print(username, password)
+                self.add_password('http://' + domain, username, password)
+            if 'username' in form_data:
+                username = form_data['username'][0]
+                password = form_data.get('password', b'')[0]
+                print(username, password)
                 self.add_password('http://' + domain, username, password)
             if 'username' in json_data:
                 username = json_data['username']
                 password = json_data.get('password', '')
                 self.add_password('http://' + domain, username, password)
             if domain in self.domain_ban or in_list(data, self.content_ban):
-                attack.ban = True
+                self.ban()
             print('[HTTP]', url)
 
         elif p.haslayer(http.HTTPResponse):
             data = p[http.HTTPResponse].payload
             if in_list(data, self.content_ban):
-                attack.ban = True
+                self.ban()
 
     def dns(self, p: Packet):
         if p.haslayer(dns.DNSQR):
             domain = p[dns.DNSQR].qname.decode('ascii', 'replace').strip('.')
             if domain in self.domain_ban:
-                attack.ban = True
+                self.ban()
 
             if p.haslayer(dns.DNSRR) and p[dns.DNSRR].type in [1, 28]:
                 ip = p[dns.DNSRR].rdata
@@ -255,8 +283,8 @@ class Analyzer:
                     self.dns_map[ip] = domain
                 else:
                     self.dns_map6[ip] = domain
-                if ip in self.ip_ban:
-                    attack.ban = True
+                if domain in self.domain_ban:
+                    self.ip_ban.add(ip)
             else:
                 print('[DNS]', domain)
 
@@ -285,6 +313,16 @@ class Analyzer:
 
     def telnet(self, p: Raw):
         pass
+
+    def ban(self):
+        self.ban_status = self.ban_method.copy()
+        if self.ban_status[0]:
+            attack.arp_ban = True
+
+    def unban(self):
+        for i in range(len(self.ban_status)):
+            self.ban_status[i] = False
+        attack.arp_ban = False
 
     def add_stats(self, domain: str):
         self.web_stats[domain] += 1

@@ -10,6 +10,7 @@
                 <th scope="col">源端口</th>
                 <th scope="col">目的端口</th>
                 <th scope="col">最高协议</th>
+                <th scope="col">大小（字节）</th>
             </tr>
             </thead>
             <tbody id="packets">
@@ -31,7 +32,8 @@
                     html += "<td>" + data[i].dst + "</td>";
                     html += "<td>" + data[i].psrc + "</td>";
                     html += "<td>" + data[i].pdst + "</td>";
-                    html += "<td>" + data[i].proto + "</td></tr>";
+                    html += "<td>" + data[i].proto + "</td>";
+                    html += "<td>" + data[i].size + "</td></tr>";
                 }
                 $("#packets").html(html);
             }, "json");
