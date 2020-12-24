@@ -26,19 +26,25 @@ class Sniffer:
         except:
             self.iface = iface
 
+        gws = netifaces.gateways()
         try:  # Windows platform
             from scapy.arch import ifaces
-            addr = netifaces.ifaddresses(ifaces.dev_from_name(iface).guid)
+            guid = ifaces.dev_from_name(iface).guid
+            addr = netifaces.ifaddresses(guid)
+            gw = {v: u for u, v, w in gws[netifaces.AF_INET]}.get(guid)
+            gw6 = {v: u for u, v, w in gws[netifaces.AF_INET6]}.get(guid)
         except:  # Linux platform
             addr = netifaces.ifaddresses(iface)
+            gw = {v: u for u, v, w in gws[netifaces.AF_INET]}.get(iface)
+            gw6 = {v: u for u, v, w in gws[netifaces.AF_INET6]}.get(iface)
 
         self.ip = {i['addr'] for i in addr[netifaces.AF_INET]}
         self.ip6 = {i['addr'].split('%')[0] for i in addr[netifaces.AF_INET6]}
         self.mac = addr[netifaces.AF_LINK][0]['addr']
 
-        self.router_ip = {conf.route.route('0.0.0.0')[2]}
-        self.router_ip6 = {conf.route6.route('::')[2]}
-        self.router_mac = l2.getmacbyip(list(self.router_ip)[0])
+        self.router_ip = {gw} if gw is not None else set()
+        self.router_ip6 = {gw6} if gw6 is not None else set()
+        self.router_mac = l2.getmacbyip(list(self.router_ip)[0]) if gw is not None else ''
 
         self.target_ip = set()
         self.target_ip6 = set()

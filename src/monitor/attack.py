@@ -23,9 +23,11 @@ def icmp_redirect(p: Packet):
     if p.haslayer(inet6.ICMPv6ND_NA) or p.haslayer(inet6.ICMPv6DestUnreach) or p.haslayer(inet6.ICMPv6ND_Redirect):
         return
     if p[l2.Ether].type == 2048:
-        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=5)
+        exp = inet.IP(src=p[inet.IP].dst, dst=p[inet.IP].src) / inet.ICMP(type=5, code=1, gw='127.0.0.1') / p[inet.IP]
     else:
-        pass
+        exp = inet6.IPv6(src=p[inet6.IPv6].dst, dst=p[inet6.IPv6].src) / inet6.ICMPv6ND_Redirect(tgt=p[inet6.IPv6].dst,
+                                                                                                 dst='::1')
+    send(exp, verbose=False)
 
 
 def tcp_rst(p: Packet):

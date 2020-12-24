@@ -59,8 +59,11 @@ class Analyzer:
         self.password = list()
 
         self._prev = None
+
         self._ftp_username = None
-        self._telnet_buf = None
+        self._telnet_buf = ''
+        self._telnet_status = 0
+        self._telnet_username = None
 
     def feed(self, p: Packet):
         """
@@ -319,8 +322,28 @@ class Analyzer:
             self.add_password('ftp://' + self.dns_map.get(p[1].dst, p[1].dst), self._ftp_username, password)
             self._ftp_username = None
 
-    def telnet(self, p: Raw):
-        pass
+    def telnet(self, p: Packet):
+        raw = bytes(p[inet.TCP].payload).decode('ascii', 'replace')
+        if p[inet.TCP].sport == 23 and self._telnet_status == 0 and 'login:' in raw:
+            self._telnet_buf = ''
+            self._telnet_status = 1
+            return
+        if p[inet.TCP].dport == 23 and self._telnet_status == 1:
+            self._telnet_buf += raw
+            if '\r\n' in self._telnet_buf:
+                self._telnet_username = self._telnet_buf.replace('\r\n', '')
+                self._telnet_status = 2
+                return
+        if p[inet.TCP].sport == 23 and self._telnet_status == 2 and 'Password:' in raw:
+            self._telnet_buf = ''
+            self._telnet_status = 3
+            return
+        if p[inet.TCP].dport == 23 and self._telnet_status == 3:
+            self._telnet_buf += raw
+            if '\r\n' in self._telnet_buf:
+                self.add_password('telnet://' + self.dns_map.get(p[1].dst, p[1].dst), self._telnet_username,
+                                  self._telnet_buf.replace('\r\n', ''))
+                self._telnet_status = 2
 
     def ban(self):
         self.ban_status = self.ban_method.copy()

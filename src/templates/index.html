@@ -58,7 +58,6 @@
             </div>
         </div>
     </div>
-
     <div class="container mt-4">
         <h4 class="mb-2" style="color: var(--color-primary-dark)">监控设置</h4>
         <hr class="mb-3">
@@ -73,13 +72,13 @@
                     <div class="row mb-3">
                         <div class="col">
                             <label for="mac">被监控主机MAC地址</label>
-                            <input id="mac" class="form-control form-control-sm" type="text" name="mac">
+                            <input id="mac" class="form-control form-control-sm" type="text" name="mac"
+                                   placeholder="请先进行LAN扫描">
                         </div>
                         <div class="col">
                             <label for="interval">ARP/NDP欺骗周期</label>
                             <input id="interval" class="form-control form-control-sm" type="number" min="0"
-                                   name="interval"
-                                   value="5">
+                                   name="interval" value="5">
                         </div>
                         <div class="col">
                             <button id="btn-sniff" class="btn btn-primary mt-4" type="button">开始流量监控</button>
