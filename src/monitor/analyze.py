@@ -330,20 +330,25 @@ class Analyzer:
             return
         if p[inet.TCP].dport == 23 and self._telnet_status == 1:
             self._telnet_buf += raw
-            if '\r\n' in self._telnet_buf:
-                self._telnet_username = self._telnet_buf.replace('\r\n', '')
+            print(self._telnet_buf)
+            if '\r' in self._telnet_buf or '\n' in self._telnet_buf:
+                self._telnet_username = self._telnet_buf.replace('\r', '').replace('\n', '')
+                print('login:', self._telnet_username)
                 self._telnet_status = 2
-                return
+            return
         if p[inet.TCP].sport == 23 and self._telnet_status == 2 and 'Password:' in raw:
             self._telnet_buf = ''
             self._telnet_status = 3
             return
         if p[inet.TCP].dport == 23 and self._telnet_status == 3:
             self._telnet_buf += raw
-            if '\r\n' in self._telnet_buf:
+            print(self._telnet_buf)
+            if '\r' in self._telnet_buf or '\n' in self._telnet_buf:
+                print('Password:', self._telnet_buf)
                 self.add_password('telnet://' + self.dns_map.get(p[1].dst, p[1].dst), self._telnet_username,
-                                  self._telnet_buf.replace('\r\n', ''))
-                self._telnet_status = 2
+                                  self._telnet_buf.replace('\r', '').replace('\n', ''))
+                self._telnet_status = 0
+            return
 
     def ban(self):
         self.ban_status = self.ban_method.copy()
