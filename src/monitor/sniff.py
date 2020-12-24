@@ -63,7 +63,7 @@ class Sniffer:
         print("Router MAC          : %s" % self.router_mac)
 
         self.sniffer = None
-        self.respoof_mac = "3E:11:4F:B0:D3:62"
+        self.respoof_mac = 'aa:bb:cc:dd:ee:ff'
 
     def scan(self, timeout=3) -> dict:
         """
@@ -174,6 +174,7 @@ class Sniffer:
         self.started = False
         if self.sniffer is not None:
             self.sniffer.stop()
+            self.sniffer = None
         print("Sniffing stopped")
 
     def _spoof_router(self):
@@ -225,10 +226,18 @@ class Sniffer:
         :param p: packet to be determined
         """
         if p[l2.Ether].type == 2048:
-            return p[inet.IP].src in self.target_ip or p[inet.IP].dst in self.target_ip
+            src = p[inet.IP].src
+            dst = p[inet.IP].dst
+            return not ipaddress.IPv4Address(src).is_multicast \
+                   and not ipaddress.IPv4Address(dst).is_multicast \
+                   and src not in self.ip | self.router_ip \
+                   and dst not in self.ip | self.router_ip
         elif p[l2.Ether].type == 34525:
-            return not p.haslayer(inet6.ICMPv6ND_NA) and (
-                    p[inet6.IPv6].src not in self.ip6 | self.router_ip6 or p[
-                inet6.IPv6].dst not in self.ip6 | self.router_ip6)
-        else:
-            return False
+            src = p[inet6.IPv6].src
+            dst = p[inet6.IPv6].dst
+            return not p.haslayer(inet6.ICMPv6ND_NA) \
+                   and not ipaddress.IPv6Address(src).is_multicast \
+                   and not ipaddress.IPv6Address(dst).is_multicast \
+                   and src not in self.ip6 | self.router_ip6 \
+                   and dst not in self.ip6 | self.router_ip6
+        return False

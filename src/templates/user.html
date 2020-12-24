@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block body %}
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col">
+                <h4 class="mb-2" style="color: var(--color-primary-dark)">用户画像</h4>
+                <hr class="mb-4">
+                <div class="row">
+                    <div class="col">
+                        <img src="{{ url_for('static', filename='avatar.png') }}" alt=""
+                             class="img-fluid">
+                    </div>
+                    <div class="col-7">
+                        <h5>User-Agent</h5>
+                        <p id="ua"></p>
+                        <h5>QQ</h5>
+                        <p id="qq"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <h4 class="mb-2" style="color: var(--color-primary-dark)">最常访问域名</h4>
+                <hr class="mb-4">
+                <div id="chart" class="ml-n5 mt-n5 mb-n5"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h4 class="mb-2" style="color: var(--color-primary-dark)">敏感信息</h4>
+        <hr class="mb-4">
+        <table class="table">
+            <thead class="thead-light">
+            <tr>
+                <th scope="col">来源</th>
+                <th scope="col">用户名</th>
+                <th scope="col">密码</th>
+            </tr>
+            </thead>
+            <tbody id="password">
+            </tbody>
+        </table>
+    </div>
+    <div class="container mt-4">
+        <h4 class="mb-2" style="color: var(--color-primary-dark)">历史记录</h4>
+        <hr class="mb-4">
+        <table class="table">
+            <thead class="thead-light">
+            <tr>
+                <th scope="col">时间</th>
+                <th scope="col">URL</th>
+            </tr>
+            </thead>
+            <tbody id="history">
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+{% block script %}
+    <script src="{{ url_for('static', filename='echarts.min.js') }}"></script>
+    <script>
+        let window_j = $(window);
+        let chart_j = $("#chart");
+        set_size();
+
+        let chart = echarts.init(chart_j.get(0));
+        let option = {
+            tooltip: {trigger: "item", formatter: "{b} : {c} ({d}%)"},
+            series: [{
+                type: "pie", radius: "50%", data: [], emphasis: {
+                    itemStyle: {shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)'}
+                }
+            }],
+        };
+
+        function set_data() {
+            $.post("{{ url_for('user') }}", "", (data) => {
+                $("#ua").text(data.ua);
+                $("#qq").text(data.qq);
+
+                let password = data.password;
+                let html = "";
+                for (let i = password.length - 1; i >= 0; i--) {
+                    html += "<tr><th scope=\"row\">" + password[i][0] + "</th>";
+                    html += "<td>" + password[i][1] + "</td>";
+                    html += "<td>" + password[i][2] + "</td></tr>";
+                }
+                $("#password").html(html);
+
+                let history = data.history;
+                html = "";
+                for (let i = history.length - 1; i >= 0; i--) {
+                    html += "<tr><th scope=\"row\">" + history[i][0] + "</th>";
+                    html += "<td>" + history[i][1] + "</td></tr>";
+                }
+                $("#history").html(html);
+
+                let stats = data.stats;
+                option.series[0].data = []
+                for (let i = 0; i < stats.length; i++) {
+                    option.series[0].data[i] = {name: stats[i][0], value: stats[i][1]};
+                }
+                chart.setOption(option);
+            }, "json");
+        }
+
+        function set_size() {
+            chart_j.width(window_j.width() * 0.4);
+            chart_j.height(window_j.width() * 0.3);
+        }
+
+        window.onresize = () => {
+            set_size();
+            chart.resize();
+        }
+
+        set_data();
+        setInterval(set_data, 1000);
+    </script>
+{% endblock %}

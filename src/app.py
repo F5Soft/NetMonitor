@@ -111,19 +111,24 @@ def ban():
     if request.method == 'POST' and request.args.get('act') in "01234":
         idx = int(request.args.get('act'))
         an.ban_method[idx] = not an.ban_method[idx]
+        if reduce(operator.or_, an.ban_status):
+            an.ban()
         return jsonify(True)
 
 
-@app.route('/usrinfo/', methods=['GET', 'POST'])
-def usrinfo():
+@app.route('/user/', methods=['GET', 'POST'])
+def user():
     if request.method == 'GET':
-        return render_template('usrinfo.html', title='用户信息')
+        return render_template('user.html', title='用户信息')
     if request.method == 'POST':
-        ans = an.ans
-        # print(ans)
-        return jsonify(ans)
+        return jsonify({
+            'qq': an.qq,
+            'ua': an.web_ua,
+            'stats': sorted(list(an.web_stats.items())[:10], key=lambda x: x[1]),
+            'password': an.password,
+            'history': an.web_history[:100]})
 
 
 if __name__ == '__main__':
     logging.getLogger('werkzeug').disabled = True
-    app.run(host='0.0.0.0', port=80, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=80, debug=True, use_reloader=False)

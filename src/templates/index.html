@@ -76,7 +76,7 @@
                             <input id="mac" class="form-control form-control-sm" type="text" name="mac">
                         </div>
                         <div class="col">
-                            <label for="interval">ARP / NDP 欺骗周期</label>
+                            <label for="interval">ARP/NDP欺骗周期</label>
                             <input id="interval" class="form-control form-control-sm" type="number" min="0"
                                    name="interval"
                                    value="5">
@@ -94,7 +94,7 @@
     <script>
         $("#btn-iface").click(() => {
             let form = $("#form-scan");
-            $.post("/?act=iface", $("#form-iface").serialize(), (data) => {
+            $.post("{{ url_for('index', act='iface') }}", $("#form-iface").serialize(), (data) => {
                 if (data) {
                     location.reload();
                 } else {
@@ -107,13 +107,13 @@
             let form = $("#form-scan");
             form.attr("hidden", true);
             $("#spin-scan").attr("hidden", false);
-            $.post("/?act=scan", form.serialize(), () => {
+            $.post("{{ url_for('index', act='scan') }}", form.serialize(), () => {
                 location.reload();
             }, "json");
         });
 
         $("#btn-sniff").click(() => {
-            $.post("/?act=sniff", $("#form-sniff").serialize(), (data) => {
+            $.post("{{ url_for('index', act='sniff') }}", $("#form-sniff").serialize(), (data) => {
                 console.log('posted');
                 if (data) {
                     window.location = "/stats";
@@ -122,7 +122,7 @@
         });
 
         $("#btn-stop").click(() => {
-            $.post("/?act=sniff", '', () => {
+            $.post("{{ url_for('index', act='sniff') }}", '', () => {
                 location.reload();
             }, 'json');
         });

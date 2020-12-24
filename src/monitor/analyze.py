@@ -24,7 +24,6 @@ class Analyzer:
         Traffic Analyzer Class
         :param log_path: pcap export path
         """
-        self.ans = [([0] * 3) for i in range(5)]
         self.ban_status = [False, False, False, False, False]  # arp/ndp, icmp3, icmp5, tcp, dns
         self.ban_method = [False, False, False, False, False]
 
@@ -33,7 +32,6 @@ class Analyzer:
         self.content_ban = set()
 
         self.dns_map = dict()
-        self.dns_map6 = dict()
 
         self.stats = {
             'all': 0,
@@ -54,9 +52,11 @@ class Analyzer:
         }
         self.packets = []
 
-        self.web_history = list()
         self.web_stats = defaultdict(int)
-        self.password = dict()
+        self.web_history = list()
+        self.web_ua = '暂无'
+        self.qq = '暂无'
+        self.password = list()
 
         self._prev = None
         self._ftp_username = None
@@ -79,6 +79,8 @@ class Analyzer:
 
         self.stats['all'] += 1
         packet = {'no': self.stats['all'], 'src': '', 'dst': '', 'psrc': '', 'pdst': '', 'proto': '', 'size': len(p)}
+        if p[1].dst in self.dns_map:
+            self.add_stats(self.dns_map[p[1].dst])
 
         if self.ban_status[1]:
             attack.icmp_unreachable(p)
@@ -235,20 +237,17 @@ class Analyzer:
             self.packets.pop(0)
         self.packets.append(packet)
 
-        # print(self.stats)
-
-        # print(packet)
-        # print()
-
-        # attack.dns_poison(p)
-        # attack.tcp_rst(p)
-
     def http(self, p: Packet):
         if p.haslayer(http.HTTPRequest):
             domain = p[http.HTTPRequest].Host.decode('ascii', 'replace')
             url = p[http.HTTPRequest].Host + p[http.HTTPRequest].Path
             url = parse.unquote(url.decode('ascii', 'replace'))
             data = bytes(p[http.HTTPRequest].payload).decode('utf-8', 'replace')
+            if p[http.HTTPRequest].Cookie is not None:
+                cookie = p[http.HTTPRequest].Cookie.decode('ascii', 'replace')
+                self.add_password('http://' + domain, '[Cookie]', cookie)
+            if p[http.HTTPRequest].User_Agent is not None:
+                self.web_ua = p[http.HTTPRequest].User_Agent.decode('ascii', 'replace')
             try:
                 form_data = parse.parse_qs(data)
             except Exception:
@@ -258,7 +257,7 @@ class Analyzer:
             except Exception:
                 json_data = {}
             self.add_stats(domain)
-            self.add_history(url)
+            self.add_history('http://' + url)
 
             if b'username' in form_data:
                 username = form_data[b'username'][0].decode('ascii', 'replace')
@@ -291,10 +290,7 @@ class Analyzer:
 
             if p.haslayer(dns.DNSRR) and p[dns.DNSRR].type in [1, 28]:
                 ip = p[dns.DNSRR].rdata
-                if p[dns.DNSRR].type == 1:
-                    self.dns_map[ip] = domain
-                else:
-                    self.dns_map6[ip] = domain
+                self.dns_map[ip] = domain
                 if domain in self.domain_ban:
                     self.ip_ban.add(ip)
             else:
@@ -304,23 +300,23 @@ class Analyzer:
         raw = bytes(p[inet.UDP].payload)
         qq = str(int.from_bytes(raw[7:11], 'big', signed=False))
         print('[OICQ]', qq)
+        self.qq = qq
         self.add_password('QQ', qq, '')
 
     def ftp(self, p: Raw):
+        if p[2].dport in [20, 21]:
+            self.add_history('ftp://' + self.dns_map.get(p[1].dst, p[1].dst))
         raw = bytes(p[inet.TCP].payload).decode('ascii', 'replace')
         username = re.findall('(?i)USER (.*)', raw)
         password = re.findall('(?i)PASS (.*)', raw)
         if username:
-            username = username[0].replace('\\r\\n', '')
+            username = username[0].replace('\r\n', '')
             self._ftp_username = username
             print('[FTP] USER', username)
         if password and self._ftp_username is not None:
-            password = password[0].replace('\\r\\n', '')
+            password = password[0].replace('\r\n', '')
             print('[FTP] PASS', password)
-            if p.haslayer(inet.IP):
-                self.add_password('ftp://' + p[inet.IP].dst, self._ftp_username, password)
-            else:
-                self.add_password('ftp://' + p[inet6.IPv6].dst, self._ftp_username, password)
+            self.add_password('ftp://' + self.dns_map.get(p[1].dst, p[1].dst), self._ftp_username, password)
             self._ftp_username = None
 
     def telnet(self, p: Raw):
@@ -340,11 +336,9 @@ class Analyzer:
         self.web_stats[domain] += 1
 
     def add_history(self, url: str):
-        self.web_history.append((time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), url))
+        self.web_history.append((time.strftime("%H:%M:%S", time.localtime()), url))
 
     def add_password(self, where: str, username: str, password: str):
-        self.password[where] = (username, password)
-        if len(self.ans) > 4:
-            self.ans.pop(0)
-        for k, v in self.password.items():
-            self.ans.append((k, v[0], v[1]))
+        t = (where, username, password)
+        if t not in self.password:
+            self.password.append(t)

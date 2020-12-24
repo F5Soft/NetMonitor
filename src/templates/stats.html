@@ -221,7 +221,7 @@
         setInterval(set_count, 1000);
 
         function set_count() {
-            $.post("#", "", (data) => {
+            $.post("{{ url_for('stats') }}", "", (data) => {
                 $(".all").text(data.all);
                 $(".ip-all").text(data.ip.all);
                 $(".ip-tcp-all").text(data.ip.tcp.all);
