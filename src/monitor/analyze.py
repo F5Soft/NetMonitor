@@ -21,8 +21,7 @@ def in_list(content: str, ban: set):
 class Analyzer:
     def __init__(self):
         """
-        Traffic Analyzer Class
-        :param log_path: pcap export path
+        Traffic Analyzer
         """
         self.ban_status = [False, False, False, False, False]  # arp/ndp, icmp3, icmp5, tcp, dns
         self.ban_method = [False, False, False, False, False]
@@ -67,18 +66,12 @@ class Analyzer:
 
     def feed(self, p: Packet):
         """
-        Analyze single packet
+        Analyze a single packet
         :param p: scapy packet
         """
-        if p.haslayer(inet.TCP):
-            if p[inet.TCP].payload == self._prev:
-                return
-            self._prev = p[inet.TCP].payload
-        if p.haslayer(inet.UDP):
-            if p[inet.UDP].payload == self._prev:
-                return
-            self._prev = p[inet.UDP].payload
-        # todo: remove duplicate ICMP datagram caused by IP forwarding
+        if p[1].payload == self._prev:
+            return
+        self._prev = p[1].payload
 
         self.stats['all'] += 1
         packet = {'no': self.stats['all'], 'src': '', 'dst': '', 'psrc': '', 'pdst': '', 'proto': '', 'size': len(p)}
@@ -236,11 +229,16 @@ class Analyzer:
             else:
                 self.stats['ip6']['other'] += 1
 
-        if len(self.packets) > 100:
+        # add packet's detail to recent packets
+        if len(self.packets) >= 100:
             self.packets.pop(0)
         self.packets.append(packet)
 
     def http(self, p: Packet):
+        """
+        Analyze HTTP protocol
+        :param p: scapy packet
+        """
         if p.haslayer(http.HTTPRequest):
             domain = p[http.HTTPRequest].Host.decode('ascii', 'replace')
             url = p[http.HTTPRequest].Host + p[http.HTTPRequest].Path
@@ -259,18 +257,13 @@ class Analyzer:
                 json_data = json.loads(data)
             except Exception:
                 json_data = {}
+            self.dns_map[p[1].dst] = domain
             self.add_stats(domain)
             self.add_history('http://' + url)
 
-            if b'username' in form_data:
-                username = form_data[b'username'][0].decode('ascii', 'replace')
-                password = form_data.get(b'password', b'')[0].decode('ascii', 'replace')
-                print(username, password)
-                self.add_password('http://' + domain, username, password)
             if 'username' in form_data:
                 username = form_data['username'][0]
                 password = form_data.get('password', b'')[0]
-                print(username, password)
                 self.add_password('http://' + domain, username, password)
             if 'username' in json_data:
                 username = json_data['username']
@@ -278,14 +271,20 @@ class Analyzer:
                 self.add_password('http://' + domain, username, password)
             if domain in self.domain_ban or in_list(data, self.content_ban):
                 self.ban()
-            print('[HTTP]', url)
 
         elif p.haslayer(http.HTTPResponse):
+            if p[http.HTTPResponse].Set_Cookie is not None:
+                cookie = p[http.HTTPResponse].Set_Cookie.decode('ascii', 'replace')
+                self.add_password('http://' + self.dns_map.get(p[1].src, p[1].src), '[Cookie]', cookie)
             data = p[http.HTTPResponse].payload
             if in_list(data, self.content_ban):
                 self.ban()
 
     def dns(self, p: Packet):
+        """
+        Analyze DNS protocol
+        :param p: scapy packet
+        """
         if p.haslayer(dns.DNSQR):
             domain = p[dns.DNSQR].qname.decode('ascii', 'replace').strip('.')
             if domain in self.domain_ban:
@@ -296,17 +295,24 @@ class Analyzer:
                 self.dns_map[ip] = domain
                 if domain in self.domain_ban:
                     self.ip_ban.add(ip)
-            else:
-                print('[DNS]', domain)
 
     def oicq(self, p: Packet):
+        """
+        Analyze OICQ protocol
+        :param p: scapy packet
+        """
         raw = bytes(p[inet.UDP].payload)
+        if raw[0] != b'\x02':
+            return
         qq = str(int.from_bytes(raw[7:11], 'big', signed=False))
-        print('[OICQ]', qq)
         self.qq = qq
         self.add_password('QQ', qq, '')
 
     def ftp(self, p: Raw):
+        """
+        Analyze FTP protocol
+        :param p: scapy packet
+        """
         if p[2].dport in [20, 21]:
             self.add_history('ftp://' + self.dns_map.get(p[1].dst, p[1].dst))
         raw = bytes(p[inet.TCP].payload).decode('ascii', 'replace')
@@ -323,17 +329,19 @@ class Analyzer:
             self._ftp_username = None
 
     def telnet(self, p: Packet):
-        raw = bytes(p[inet.TCP].payload).decode('ascii', 'replace')
+        """
+        Analyze Telnet protocol
+        :param p: scapy packet
+        """
+        raw = bytes(p[inet.TCP].payload).decode('ascii', 'ignore')
         if p[inet.TCP].sport == 23 and self._telnet_status == 0 and 'login:' in raw:
             self._telnet_buf = ''
             self._telnet_status = 1
             return
         if p[inet.TCP].dport == 23 and self._telnet_status == 1:
             self._telnet_buf += raw
-            print(self._telnet_buf)
             if '\r' in self._telnet_buf or '\n' in self._telnet_buf:
                 self._telnet_username = self._telnet_buf.replace('\r', '').replace('\n', '')
-                print('login:', self._telnet_username)
                 self._telnet_status = 2
             return
         if p[inet.TCP].sport == 23 and self._telnet_status == 2 and 'Password:' in raw:
@@ -342,20 +350,24 @@ class Analyzer:
             return
         if p[inet.TCP].dport == 23 and self._telnet_status == 3:
             self._telnet_buf += raw
-            print(self._telnet_buf)
             if '\r' in self._telnet_buf or '\n' in self._telnet_buf:
-                print('Password:', self._telnet_buf)
                 self.add_password('telnet://' + self.dns_map.get(p[1].dst, p[1].dst), self._telnet_username,
                                   self._telnet_buf.replace('\r', '').replace('\n', ''))
                 self._telnet_status = 0
             return
 
     def ban(self):
+        """
+        Ban target
+        """
         self.ban_status = self.ban_method.copy()
         if self.ban_status[0]:
             attack.arp_ban = True
 
     def unban(self):
+        """
+        Unban target
+        """
         for i in range(len(self.ban_status)):
             self.ban_status[i] = False
         attack.arp_ban = False

