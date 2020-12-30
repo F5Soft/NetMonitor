@@ -302,7 +302,7 @@ class Analyzer:
         :param p: scapy packet
         """
         raw = bytes(p[inet.UDP].payload)
-        if raw[0] != b'\x02':
+        if raw[0] != 2:
             return
         qq = str(int.from_bytes(raw[7:11], 'big', signed=False))
         self.qq = qq

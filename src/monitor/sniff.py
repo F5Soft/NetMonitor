@@ -30,8 +30,8 @@ class Sniffer:
             from scapy.arch import ifaces
             guid = ifaces.dev_from_name(iface).guid
             addr = netifaces.ifaddresses(guid)
-            gw = {v: u for u, v, w in gws[netifaces.AF_INET]}.get(guid)
-            gw6 = {v: u for u, v, w in gws[netifaces.AF_INET6]}.get(guid)
+            gw = {v: u for u, v, w in gws[netifaces.AF_INET]}.get(guid) if netifaces.AF_INET in gws else None
+            gw6 = {v: u for u, v, w in gws[netifaces.AF_INET6]}.get(guid) if netifaces.AF_INET6 in gws else None
         except:  # Linux platform
             addr = netifaces.ifaddresses(iface)
             gw = {v: u for u, v, w in gws[netifaces.AF_INET]}.get(iface)
